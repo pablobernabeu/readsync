@@ -1,0 +1,81 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "readsync"
+version = "0.1.0"
+description = "Offline-first, secure toolkit for synchronised reading experiments with eye-tracking and EEG, extending PsychoPy and the open analysis stack."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Pablo Bernabeu" }]
+keywords = ["reading", "eye-tracking", "psycholinguistics", "EEG", "offline", "open-science"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+
+# Core dependencies are deliberately light so the package installs, runs and is
+# testable without research hardware or a display. Heavy, platform-specific or
+# hardware-specific dependencies live behind optional extras below.
+dependencies = [
+  "cryptography>=42.0",
+]
+
+[project.optional-dependencies]
+# Stimulus presentation on the lab machine. PsychoPy is large and platform
+# sensitive, so it is opt-in; the headless presenter needs none of it.
+present = ["psychopy>=2024.1"]
+# Research-grade eye-tracker backends. pylink and its PsychoPy calibration
+# graphics ship with the SR Research SDK and are installed separately on the lab
+# machine, so they are listed here for documentation rather than pulled from PyPI.
+eyelink = []
+# Webcam strand: camera capture and the gaze model the estimator builds on.
+# MediaPipe brings opencv-contrib-python, which supplies cv2, so OpenCV is not
+# listed separately to avoid two competing cv2 builds.
+webcam = ["mediapipe>=0.10,<0.11"]
+# Building the stimulus sets with frequency annotation. Build-time only; the JSON
+# files ship with the frequencies baked in, so running a session needs none of it.
+stimuli = ["wordfreq>=3"]
+# Lab-Streaming-Layer marker transport for EEG co-registration.
+lsl = ["pylsl>=1.16"]
+dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10"]
+
+# These URLs name the standalone public repository this folder is published to;
+# they go live with the split commit.
+[project.urls]
+Homepage = "https://github.com/pablobernabeu/readsync"
+Repository = "https://github.com/pablobernabeu/readsync"
+Issues = "https://github.com/pablobernabeu/readsync/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/readsync"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src/readsync"]
+
+# Optional hardware and vision dependencies are imported lazily and ship no type
+# stubs. Ignoring their missing imports keeps type-checking identical whether or
+# not the extras are installed, so it matches both CI and a lab or webcam machine.
+[[tool.mypy.overrides]]
+module = ["cv2", "mediapipe", "mediapipe.*", "pylink", "psychopy", "psychopy.*", "pylsl"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,11 @@
+{
+  "name": "readsync-web-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fully client-side, head-pose-aware webcam reading demo for readsync.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "firebase serve --only hosting --port 5055"
+  }
+}

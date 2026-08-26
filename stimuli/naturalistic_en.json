@@ -1,0 +1,738 @@
+{
+  "name": "Neutral naturalistic passages (English)",
+  "language": "en",
+  "license": "CC-BY-4.0",
+  "source": "Constructed for readsync. Per-word frequencies are Zipf values from the wordfreq package.",
+  "citation": [
+    "Frequencies: Speer, R. (2022). wordfreq (v3.0.2). Zenodo. https://doi.org/10.5281/zenodo.7199437",
+    "Zipf scale: van Heuven, W. J. B., Mandera, P., Keuleers, E., & Brysbaert, M. (2014). SUBTLEX-UK: A new and improved word frequency database for British English. Quarterly Journal of Experimental Psychology, 67(6), 1176-1190. https://doi.org/10.1080/17470218.2013.850521",
+    "Frequency and length effects in reading: Rayner, K. (1998). Eye movements in reading and information processing: 20 years of research. Psychological Bulletin, 124(3), 372-422. https://doi.org/10.1037/0033-2909.124.3.372",
+    "Frequency effect, updated review: Brysbaert, M., Mandera, P., & Keuleers, E. (2018). The word frequency effect in word processing: An updated review. Current Directions in Psychological Science, 27(1), 45-50. https://doi.org/10.1177/0963721417727521"
+  ],
+  "design": "Short, neutral connected-prose passages for practice and for global reading measures, each with a yes/no comprehension question. Not a controlled corpus.",
+  "items": [
+    {
+      "id": "n01",
+      "text": "The market opened early on Saturday. Traders arranged their fruit and bread while the first customers walked slowly between the stalls.",
+      "question": "Did the market open early on Saturday?",
+      "answer": true,
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "market",
+          "zipf": 5.29
+        },
+        {
+          "index": 2,
+          "text": "opened",
+          "zipf": 4.85
+        },
+        {
+          "index": 3,
+          "text": "early",
+          "zipf": 5.43
+        },
+        {
+          "index": 4,
+          "text": "on",
+          "zipf": 6.91
+        },
+        {
+          "index": 5,
+          "text": "Saturday.",
+          "zipf": 4.87
+        },
+        {
+          "index": 6,
+          "text": "Traders",
+          "zipf": 3.95
+        },
+        {
+          "index": 7,
+          "text": "arranged",
+          "zipf": 4.31
+        },
+        {
+          "index": 8,
+          "text": "their",
+          "zipf": 6.33
+        },
+        {
+          "index": 9,
+          "text": "fruit",
+          "zipf": 4.57
+        },
+        {
+          "index": 10,
+          "text": "and",
+          "zipf": 7.41
+        },
+        {
+          "index": 11,
+          "text": "bread",
+          "zipf": 4.5
+        },
+        {
+          "index": 12,
+          "text": "while",
+          "zipf": 5.86
+        },
+        {
+          "index": 13,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 14,
+          "text": "first",
+          "zipf": 6.11
+        },
+        {
+          "index": 15,
+          "text": "customers",
+          "zipf": 4.78
+        },
+        {
+          "index": 16,
+          "text": "walked",
+          "zipf": 4.67
+        },
+        {
+          "index": 17,
+          "text": "slowly",
+          "zipf": 4.63
+        },
+        {
+          "index": 18,
+          "text": "between",
+          "zipf": 5.77
+        },
+        {
+          "index": 19,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 20,
+          "text": "stalls.",
+          "zipf": 3.51
+        }
+      ]
+    },
+    {
+      "id": "n02",
+      "text": "A light wind moved across the lake. Two small boats drifted near the shore as the morning sun warmed the quiet water.",
+      "question": "Were there three boats on the lake?",
+      "answer": false,
+      "words": [
+        {
+          "index": 0,
+          "text": "A",
+          "zipf": 7.36
+        },
+        {
+          "index": 1,
+          "text": "light",
+          "zipf": 5.33
+        },
+        {
+          "index": 2,
+          "text": "wind",
+          "zipf": 4.84
+        },
+        {
+          "index": 3,
+          "text": "moved",
+          "zipf": 5.01
+        },
+        {
+          "index": 4,
+          "text": "across",
+          "zipf": 5.25
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "lake.",
+          "zipf": 4.83
+        },
+        {
+          "index": 7,
+          "text": "Two",
+          "zipf": 6.1
+        },
+        {
+          "index": 8,
+          "text": "small",
+          "zipf": 5.51
+        },
+        {
+          "index": 9,
+          "text": "boats",
+          "zipf": 4.25
+        },
+        {
+          "index": 10,
+          "text": "drifted",
+          "zipf": 3.41
+        },
+        {
+          "index": 11,
+          "text": "near",
+          "zipf": 5.29
+        },
+        {
+          "index": 12,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 13,
+          "text": "shore",
+          "zipf": 4.33
+        },
+        {
+          "index": 14,
+          "text": "as",
+          "zipf": 6.77
+        },
+        {
+          "index": 15,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 16,
+          "text": "morning",
+          "zipf": 5.33
+        },
+        {
+          "index": 17,
+          "text": "sun",
+          "zipf": 4.97
+        },
+        {
+          "index": 18,
+          "text": "warmed",
+          "zipf": 3.47
+        },
+        {
+          "index": 19,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 20,
+          "text": "quiet",
+          "zipf": 4.65
+        },
+        {
+          "index": 21,
+          "text": "water.",
+          "zipf": 5.52
+        }
+      ]
+    },
+    {
+      "id": "n03",
+      "text": "The library stayed open late during the exam season. Students filled every table, reading carefully and making notes for their classes.",
+      "question": "Did the library close early during the exam season?",
+      "answer": false,
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "library",
+          "zipf": 4.86
+        },
+        {
+          "index": 2,
+          "text": "stayed",
+          "zipf": 4.53
+        },
+        {
+          "index": 3,
+          "text": "open",
+          "zipf": 5.48
+        },
+        {
+          "index": 4,
+          "text": "late",
+          "zipf": 5.34
+        },
+        {
+          "index": 5,
+          "text": "during",
+          "zipf": 5.72
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "exam",
+          "zipf": 4.26
+        },
+        {
+          "index": 8,
+          "text": "season.",
+          "zipf": 5.48
+        },
+        {
+          "index": 9,
+          "text": "Students",
+          "zipf": 5.25
+        },
+        {
+          "index": 10,
+          "text": "filled",
+          "zipf": 4.7
+        },
+        {
+          "index": 11,
+          "text": "every",
+          "zipf": 5.79
+        },
+        {
+          "index": 12,
+          "text": "table,",
+          "zipf": 5.05
+        },
+        {
+          "index": 13,
+          "text": "reading",
+          "zipf": 5.14
+        },
+        {
+          "index": 14,
+          "text": "carefully",
+          "zipf": 4.46
+        },
+        {
+          "index": 15,
+          "text": "and",
+          "zipf": 7.41
+        },
+        {
+          "index": 16,
+          "text": "making",
+          "zipf": 5.54
+        },
+        {
+          "index": 17,
+          "text": "notes",
+          "zipf": 4.84
+        },
+        {
+          "index": 18,
+          "text": "for",
+          "zipf": 7.01
+        },
+        {
+          "index": 19,
+          "text": "their",
+          "zipf": 6.33
+        },
+        {
+          "index": 20,
+          "text": "classes.",
+          "zipf": 4.77
+        }
+      ]
+    },
+    {
+      "id": "n04",
+      "text": "Rain fell steadily over the city. People hurried under the shop awnings while the buses moved slowly through the crowded evening streets.",
+      "question": "Were the buses moving slowly?",
+      "answer": true,
+      "words": [
+        {
+          "index": 0,
+          "text": "Rain",
+          "zipf": 4.71
+        },
+        {
+          "index": 1,
+          "text": "fell",
+          "zipf": 4.85
+        },
+        {
+          "index": 2,
+          "text": "steadily",
+          "zipf": 3.84
+        },
+        {
+          "index": 3,
+          "text": "over",
+          "zipf": 6.08
+        },
+        {
+          "index": 4,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 5,
+          "text": "city.",
+          "zipf": 5.61
+        },
+        {
+          "index": 6,
+          "text": "People",
+          "zipf": 6.25
+        },
+        {
+          "index": 7,
+          "text": "hurried",
+          "zipf": 3.14
+        },
+        {
+          "index": 8,
+          "text": "under",
+          "zipf": 5.73
+        },
+        {
+          "index": 9,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 10,
+          "text": "shop",
+          "zipf": 4.88
+        },
+        {
+          "index": 11,
+          "text": "awnings",
+          "zipf": 2.36
+        },
+        {
+          "index": 12,
+          "text": "while",
+          "zipf": 5.86
+        },
+        {
+          "index": 13,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 14,
+          "text": "buses",
+          "zipf": 4.02
+        },
+        {
+          "index": 15,
+          "text": "moved",
+          "zipf": 5.01
+        },
+        {
+          "index": 16,
+          "text": "slowly",
+          "zipf": 4.63
+        },
+        {
+          "index": 17,
+          "text": "through",
+          "zipf": 5.87
+        },
+        {
+          "index": 18,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 19,
+          "text": "crowded",
+          "zipf": 3.98
+        },
+        {
+          "index": 20,
+          "text": "evening",
+          "zipf": 4.86
+        },
+        {
+          "index": 21,
+          "text": "streets.",
+          "zipf": 4.66
+        }
+      ]
+    },
+    {
+      "id": "n05",
+      "text": "The old farmhouse stood at the end of a long track. Sheep grazed in the fields nearby, and a thin line of smoke rose from the chimney.",
+      "question": "Were sheep grazing near the farmhouse?",
+      "answer": true,
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "old",
+          "zipf": 5.75
+        },
+        {
+          "index": 2,
+          "text": "farmhouse",
+          "zipf": 3.42
+        },
+        {
+          "index": 3,
+          "text": "stood",
+          "zipf": 4.57
+        },
+        {
+          "index": 4,
+          "text": "at",
+          "zipf": 6.7
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "end",
+          "zipf": 5.68
+        },
+        {
+          "index": 7,
+          "text": "of",
+          "zipf": 7.4
+        },
+        {
+          "index": 8,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 9,
+          "text": "long",
+          "zipf": 5.81
+        },
+        {
+          "index": 10,
+          "text": "track.",
+          "zipf": 5.02
+        },
+        {
+          "index": 11,
+          "text": "Sheep",
+          "zipf": 4.19
+        },
+        {
+          "index": 12,
+          "text": "grazed",
+          "zipf": 2.89
+        },
+        {
+          "index": 13,
+          "text": "in",
+          "zipf": 7.27
+        },
+        {
+          "index": 14,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 15,
+          "text": "fields",
+          "zipf": 4.6
+        },
+        {
+          "index": 16,
+          "text": "nearby,",
+          "zipf": 4.55
+        },
+        {
+          "index": 17,
+          "text": "and",
+          "zipf": 7.41
+        },
+        {
+          "index": 18,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 19,
+          "text": "thin",
+          "zipf": 4.47
+        },
+        {
+          "index": 20,
+          "text": "line",
+          "zipf": 5.49
+        },
+        {
+          "index": 21,
+          "text": "of",
+          "zipf": 7.4
+        },
+        {
+          "index": 22,
+          "text": "smoke",
+          "zipf": 4.67
+        },
+        {
+          "index": 23,
+          "text": "rose",
+          "zipf": 4.82
+        },
+        {
+          "index": 24,
+          "text": "from",
+          "zipf": 6.63
+        },
+        {
+          "index": 25,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 26,
+          "text": "chimney.",
+          "zipf": 3.55
+        }
+      ]
+    },
+    {
+      "id": "n06",
+      "text": "The train left the station on time. Passengers settled into their seats, watching the grey suburbs give way to open green countryside.",
+      "question": "Did the train leave late?",
+      "answer": false,
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "train",
+          "zipf": 4.96
+        },
+        {
+          "index": 2,
+          "text": "left",
+          "zipf": 5.62
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "station",
+          "zipf": 5.01
+        },
+        {
+          "index": 5,
+          "text": "on",
+          "zipf": 6.91
+        },
+        {
+          "index": 6,
+          "text": "time.",
+          "zipf": 6.29
+        },
+        {
+          "index": 7,
+          "text": "Passengers",
+          "zipf": 4.34
+        },
+        {
+          "index": 8,
+          "text": "settled",
+          "zipf": 4.44
+        },
+        {
+          "index": 9,
+          "text": "into",
+          "zipf": 6.11
+        },
+        {
+          "index": 10,
+          "text": "their",
+          "zipf": 6.33
+        },
+        {
+          "index": 11,
+          "text": "seats,",
+          "zipf": 4.53
+        },
+        {
+          "index": 12,
+          "text": "watching",
+          "zipf": 5.02
+        },
+        {
+          "index": 13,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 14,
+          "text": "grey",
+          "zipf": 4.48
+        },
+        {
+          "index": 15,
+          "text": "suburbs",
+          "zipf": 3.96
+        },
+        {
+          "index": 16,
+          "text": "give",
+          "zipf": 5.71
+        },
+        {
+          "index": 17,
+          "text": "way",
+          "zipf": 6.01
+        },
+        {
+          "index": 18,
+          "text": "to",
+          "zipf": 7.43
+        },
+        {
+          "index": 19,
+          "text": "open",
+          "zipf": 5.48
+        },
+        {
+          "index": 20,
+          "text": "green",
+          "zipf": 5.13
+        },
+        {
+          "index": 21,
+          "text": "countryside.",
+          "zipf": 3.92
+        }
+      ]
+    }
+  ]
+}

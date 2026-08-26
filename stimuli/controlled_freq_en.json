@@ -1,0 +1,1783 @@
+{
+  "name": "Controlled word-frequency reading set (English)",
+  "language": "en",
+  "license": "CC-BY-4.0",
+  "source": "Constructed for readsync. Target and per-word frequencies are Zipf values from the wordfreq package.",
+  "citation": [
+    "Frequencies: Speer, R. (2022). wordfreq (v3.0.2). Zenodo. https://doi.org/10.5281/zenodo.7199437",
+    "Zipf scale: van Heuven, W. J. B., Mandera, P., Keuleers, E., & Brysbaert, M. (2014). SUBTLEX-UK: A new and improved word frequency database for British English. Quarterly Journal of Experimental Psychology, 67(6), 1176-1190. https://doi.org/10.1080/17470218.2013.850521",
+    "Frequency and length effects in reading: Rayner, K. (1998). Eye movements in reading and information processing: 20 years of research. Psychological Bulletin, 124(3), 372-422. https://doi.org/10.1037/0033-2909.124.3.372",
+    "Frequency effect, updated review: Brysbaert, M., Mandera, P., & Keuleers, E. (2018). The word frequency effect in word processing: An updated review. Current Directions in Psychological Science, 27(1), 45-50. https://doi.org/10.1177/0963721417727521"
+  ],
+  "design": "Matched frame pairs. Each pair is one sentence that differs only in the target word, and the high and low target words have the same length, so lexical frequency is the only manipulated property. Predictability is not normed and would need cloze data before analysis.",
+  "items": [
+    {
+      "id": "p01h",
+      "text": "The cook carefully poured the water into a large metal pan.",
+      "condition": "high",
+      "pair": "p01",
+      "target": {
+        "word_index": 5,
+        "word": "water",
+        "zipf": 5.52,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 5,
+          "end": 6,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "cook",
+          "zipf": 4.65
+        },
+        {
+          "index": 2,
+          "text": "carefully",
+          "zipf": 4.46
+        },
+        {
+          "index": 3,
+          "text": "poured",
+          "zipf": 3.82
+        },
+        {
+          "index": 4,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 5,
+          "text": "water",
+          "zipf": 5.52
+        },
+        {
+          "index": 6,
+          "text": "into",
+          "zipf": 6.11
+        },
+        {
+          "index": 7,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 8,
+          "text": "large",
+          "zipf": 5.39
+        },
+        {
+          "index": 9,
+          "text": "metal",
+          "zipf": 4.82
+        },
+        {
+          "index": 10,
+          "text": "pan.",
+          "zipf": 4.39
+        }
+      ]
+    },
+    {
+      "id": "p01l",
+      "text": "The cook carefully poured the brine into a large metal pan.",
+      "condition": "low",
+      "pair": "p01",
+      "target": {
+        "word_index": 5,
+        "word": "brine",
+        "zipf": 3.07,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 5,
+          "end": 6,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "cook",
+          "zipf": 4.65
+        },
+        {
+          "index": 2,
+          "text": "carefully",
+          "zipf": 4.46
+        },
+        {
+          "index": 3,
+          "text": "poured",
+          "zipf": 3.82
+        },
+        {
+          "index": 4,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 5,
+          "text": "brine",
+          "zipf": 3.07
+        },
+        {
+          "index": 6,
+          "text": "into",
+          "zipf": 6.11
+        },
+        {
+          "index": 7,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 8,
+          "text": "large",
+          "zipf": 5.39
+        },
+        {
+          "index": 9,
+          "text": "metal",
+          "zipf": 4.82
+        },
+        {
+          "index": 10,
+          "text": "pan.",
+          "zipf": 4.39
+        }
+      ]
+    },
+    {
+      "id": "p02h",
+      "text": "We quietly watched the river from the old wooden bridge.",
+      "condition": "high",
+      "pair": "p02",
+      "target": {
+        "word_index": 4,
+        "word": "river",
+        "zipf": 5.03,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "We",
+          "zipf": 6.54
+        },
+        {
+          "index": 1,
+          "text": "quietly",
+          "zipf": 4.15
+        },
+        {
+          "index": 2,
+          "text": "watched",
+          "zipf": 4.72
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "river",
+          "zipf": 5.03
+        },
+        {
+          "index": 5,
+          "text": "from",
+          "zipf": 6.63
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "old",
+          "zipf": 5.75
+        },
+        {
+          "index": 8,
+          "text": "wooden",
+          "zipf": 4.33
+        },
+        {
+          "index": 9,
+          "text": "bridge.",
+          "zipf": 4.77
+        }
+      ]
+    },
+    {
+      "id": "p02l",
+      "text": "We quietly watched the otter from the old wooden bridge.",
+      "condition": "low",
+      "pair": "p02",
+      "target": {
+        "word_index": 4,
+        "word": "otter",
+        "zipf": 3.37,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "We",
+          "zipf": 6.54
+        },
+        {
+          "index": 1,
+          "text": "quietly",
+          "zipf": 4.15
+        },
+        {
+          "index": 2,
+          "text": "watched",
+          "zipf": 4.72
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "otter",
+          "zipf": 3.37
+        },
+        {
+          "index": 5,
+          "text": "from",
+          "zipf": 6.63
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "old",
+          "zipf": 5.75
+        },
+        {
+          "index": 8,
+          "text": "wooden",
+          "zipf": 4.33
+        },
+        {
+          "index": 9,
+          "text": "bridge.",
+          "zipf": 4.77
+        }
+      ]
+    },
+    {
+      "id": "p03h",
+      "text": "The farmer slowly led the horse across the muddy field.",
+      "condition": "high",
+      "pair": "p03",
+      "target": {
+        "word_index": 5,
+        "word": "horse",
+        "zipf": 4.76,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 5,
+          "end": 6,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "farmer",
+          "zipf": 4.15
+        },
+        {
+          "index": 2,
+          "text": "slowly",
+          "zipf": 4.63
+        },
+        {
+          "index": 3,
+          "text": "led",
+          "zipf": 5.11
+        },
+        {
+          "index": 4,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 5,
+          "text": "horse",
+          "zipf": 4.76
+        },
+        {
+          "index": 6,
+          "text": "across",
+          "zipf": 5.25
+        },
+        {
+          "index": 7,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 8,
+          "text": "muddy",
+          "zipf": 3.6
+        },
+        {
+          "index": 9,
+          "text": "field.",
+          "zipf": 5.24
+        }
+      ]
+    },
+    {
+      "id": "p03l",
+      "text": "The farmer slowly led the llama across the muddy field.",
+      "condition": "low",
+      "pair": "p03",
+      "target": {
+        "word_index": 5,
+        "word": "llama",
+        "zipf": 2.95,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 5,
+          "end": 6,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "farmer",
+          "zipf": 4.15
+        },
+        {
+          "index": 2,
+          "text": "slowly",
+          "zipf": 4.63
+        },
+        {
+          "index": 3,
+          "text": "led",
+          "zipf": 5.11
+        },
+        {
+          "index": 4,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 5,
+          "text": "llama",
+          "zipf": 2.95
+        },
+        {
+          "index": 6,
+          "text": "across",
+          "zipf": 5.25
+        },
+        {
+          "index": 7,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 8,
+          "text": "muddy",
+          "zipf": 3.6
+        },
+        {
+          "index": 9,
+          "text": "field.",
+          "zipf": 5.24
+        }
+      ]
+    },
+    {
+      "id": "p04h",
+      "text": "A tall plant stood beside the calm grey mountain lake.",
+      "condition": "high",
+      "pair": "p04",
+      "target": {
+        "word_index": 2,
+        "word": "plant",
+        "zipf": 4.89,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 2,
+          "end": 3,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "A",
+          "zipf": 7.36
+        },
+        {
+          "index": 1,
+          "text": "tall",
+          "zipf": 4.52
+        },
+        {
+          "index": 2,
+          "text": "plant",
+          "zipf": 4.89
+        },
+        {
+          "index": 3,
+          "text": "stood",
+          "zipf": 4.57
+        },
+        {
+          "index": 4,
+          "text": "beside",
+          "zipf": 4.19
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "calm",
+          "zipf": 4.54
+        },
+        {
+          "index": 7,
+          "text": "grey",
+          "zipf": 4.48
+        },
+        {
+          "index": 8,
+          "text": "mountain",
+          "zipf": 4.73
+        },
+        {
+          "index": 9,
+          "text": "lake.",
+          "zipf": 4.83
+        }
+      ]
+    },
+    {
+      "id": "p04l",
+      "text": "A tall heron stood beside the calm grey mountain lake.",
+      "condition": "low",
+      "pair": "p04",
+      "target": {
+        "word_index": 2,
+        "word": "heron",
+        "zipf": 3.09,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 2,
+          "end": 3,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "A",
+          "zipf": 7.36
+        },
+        {
+          "index": 1,
+          "text": "tall",
+          "zipf": 4.52
+        },
+        {
+          "index": 2,
+          "text": "heron",
+          "zipf": 3.09
+        },
+        {
+          "index": 3,
+          "text": "stood",
+          "zipf": 4.57
+        },
+        {
+          "index": 4,
+          "text": "beside",
+          "zipf": 4.19
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "calm",
+          "zipf": 4.54
+        },
+        {
+          "index": 7,
+          "text": "grey",
+          "zipf": 4.48
+        },
+        {
+          "index": 8,
+          "text": "mountain",
+          "zipf": 4.73
+        },
+        {
+          "index": 9,
+          "text": "lake.",
+          "zipf": 4.83
+        }
+      ]
+    },
+    {
+      "id": "p05h",
+      "text": "She bought some fresh bread at the small village market.",
+      "condition": "high",
+      "pair": "p05",
+      "target": {
+        "word_index": 4,
+        "word": "bread",
+        "zipf": 4.5,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "She",
+          "zipf": 6.26
+        },
+        {
+          "index": 1,
+          "text": "bought",
+          "zipf": 4.91
+        },
+        {
+          "index": 2,
+          "text": "some",
+          "zipf": 6.2
+        },
+        {
+          "index": 3,
+          "text": "fresh",
+          "zipf": 4.83
+        },
+        {
+          "index": 4,
+          "text": "bread",
+          "zipf": 4.5
+        },
+        {
+          "index": 5,
+          "text": "at",
+          "zipf": 6.7
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "small",
+          "zipf": 5.51
+        },
+        {
+          "index": 8,
+          "text": "village",
+          "zipf": 4.82
+        },
+        {
+          "index": 9,
+          "text": "market.",
+          "zipf": 5.29
+        }
+      ]
+    },
+    {
+      "id": "p05l",
+      "text": "She bought some fresh swede at the small village market.",
+      "condition": "low",
+      "pair": "p05",
+      "target": {
+        "word_index": 4,
+        "word": "swede",
+        "zipf": 3.05,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "She",
+          "zipf": 6.26
+        },
+        {
+          "index": 1,
+          "text": "bought",
+          "zipf": 4.91
+        },
+        {
+          "index": 2,
+          "text": "some",
+          "zipf": 6.2
+        },
+        {
+          "index": 3,
+          "text": "fresh",
+          "zipf": 4.83
+        },
+        {
+          "index": 4,
+          "text": "swede",
+          "zipf": 3.05
+        },
+        {
+          "index": 5,
+          "text": "at",
+          "zipf": 6.7
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "small",
+          "zipf": 5.51
+        },
+        {
+          "index": 8,
+          "text": "village",
+          "zipf": 4.82
+        },
+        {
+          "index": 9,
+          "text": "market.",
+          "zipf": 5.29
+        }
+      ]
+    },
+    {
+      "id": "p06h",
+      "text": "A small bird sat on the fence beside the open gate.",
+      "condition": "high",
+      "pair": "p06",
+      "target": {
+        "word_index": 2,
+        "word": "bird",
+        "zipf": 4.63,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 2,
+          "end": 3,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "A",
+          "zipf": 7.36
+        },
+        {
+          "index": 1,
+          "text": "small",
+          "zipf": 5.51
+        },
+        {
+          "index": 2,
+          "text": "bird",
+          "zipf": 4.63
+        },
+        {
+          "index": 3,
+          "text": "sat",
+          "zipf": 4.64
+        },
+        {
+          "index": 4,
+          "text": "on",
+          "zipf": 6.91
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "fence",
+          "zipf": 4.21
+        },
+        {
+          "index": 7,
+          "text": "beside",
+          "zipf": 4.19
+        },
+        {
+          "index": 8,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 9,
+          "text": "open",
+          "zipf": 5.48
+        },
+        {
+          "index": 10,
+          "text": "gate.",
+          "zipf": 4.47
+        }
+      ]
+    },
+    {
+      "id": "p06l",
+      "text": "A small wren sat on the fence beside the open gate.",
+      "condition": "low",
+      "pair": "p06",
+      "target": {
+        "word_index": 2,
+        "word": "wren",
+        "zipf": 3.09,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 2,
+          "end": 3,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "A",
+          "zipf": 7.36
+        },
+        {
+          "index": 1,
+          "text": "small",
+          "zipf": 5.51
+        },
+        {
+          "index": 2,
+          "text": "wren",
+          "zipf": 3.09
+        },
+        {
+          "index": 3,
+          "text": "sat",
+          "zipf": 4.64
+        },
+        {
+          "index": 4,
+          "text": "on",
+          "zipf": 6.91
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "fence",
+          "zipf": 4.21
+        },
+        {
+          "index": 7,
+          "text": "beside",
+          "zipf": 4.19
+        },
+        {
+          "index": 8,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 9,
+          "text": "open",
+          "zipf": 5.48
+        },
+        {
+          "index": 10,
+          "text": "gate.",
+          "zipf": 4.47
+        }
+      ]
+    },
+    {
+      "id": "p07h",
+      "text": "They saw a tree at the far edge of the meadow.",
+      "condition": "high",
+      "pair": "p07",
+      "target": {
+        "word_index": 3,
+        "word": "tree",
+        "zipf": 4.85,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "saw",
+          "zipf": 5.34
+        },
+        {
+          "index": 2,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 3,
+          "text": "tree",
+          "zipf": 4.85
+        },
+        {
+          "index": 4,
+          "text": "at",
+          "zipf": 6.7
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "far",
+          "zipf": 5.5
+        },
+        {
+          "index": 7,
+          "text": "edge",
+          "zipf": 4.74
+        },
+        {
+          "index": 8,
+          "text": "of",
+          "zipf": 7.4
+        },
+        {
+          "index": 9,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 10,
+          "text": "meadow.",
+          "zipf": 3.6
+        }
+      ]
+    },
+    {
+      "id": "p07l",
+      "text": "They saw a fawn at the far edge of the meadow.",
+      "condition": "low",
+      "pair": "p07",
+      "target": {
+        "word_index": 3,
+        "word": "fawn",
+        "zipf": 3.02,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "saw",
+          "zipf": 5.34
+        },
+        {
+          "index": 2,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 3,
+          "text": "fawn",
+          "zipf": 3.02
+        },
+        {
+          "index": 4,
+          "text": "at",
+          "zipf": 6.7
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "far",
+          "zipf": 5.5
+        },
+        {
+          "index": 7,
+          "text": "edge",
+          "zipf": 4.74
+        },
+        {
+          "index": 8,
+          "text": "of",
+          "zipf": 7.4
+        },
+        {
+          "index": 9,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 10,
+          "text": "meadow.",
+          "zipf": 3.6
+        }
+      ]
+    },
+    {
+      "id": "p08h",
+      "text": "They slowly explored the garden behind the old stone cottage.",
+      "condition": "high",
+      "pair": "p08",
+      "target": {
+        "word_index": 4,
+        "word": "garden",
+        "zipf": 4.77,
+        "length": 6
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "slowly",
+          "zipf": 4.63
+        },
+        {
+          "index": 2,
+          "text": "explored",
+          "zipf": 3.9
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "garden",
+          "zipf": 4.77
+        },
+        {
+          "index": 5,
+          "text": "behind",
+          "zipf": 5.29
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "old",
+          "zipf": 5.75
+        },
+        {
+          "index": 8,
+          "text": "stone",
+          "zipf": 4.8
+        },
+        {
+          "index": 9,
+          "text": "cottage.",
+          "zipf": 4.0
+        }
+      ]
+    },
+    {
+      "id": "p08l",
+      "text": "They slowly explored the cellar behind the old stone cottage.",
+      "condition": "low",
+      "pair": "p08",
+      "target": {
+        "word_index": 4,
+        "word": "cellar",
+        "zipf": 3.6,
+        "length": 6
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "slowly",
+          "zipf": 4.63
+        },
+        {
+          "index": 2,
+          "text": "explored",
+          "zipf": 3.9
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "cellar",
+          "zipf": 3.6
+        },
+        {
+          "index": 5,
+          "text": "behind",
+          "zipf": 5.29
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "old",
+          "zipf": 5.75
+        },
+        {
+          "index": 8,
+          "text": "stone",
+          "zipf": 4.8
+        },
+        {
+          "index": 9,
+          "text": "cottage.",
+          "zipf": 4.0
+        }
+      ]
+    },
+    {
+      "id": "p09h",
+      "text": "The friends camped near the forest for several quiet days.",
+      "condition": "high",
+      "pair": "p09",
+      "target": {
+        "word_index": 5,
+        "word": "forest",
+        "zipf": 4.7,
+        "length": 6
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 5,
+          "end": 6,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "friends",
+          "zipf": 5.43
+        },
+        {
+          "index": 2,
+          "text": "camped",
+          "zipf": 3.27
+        },
+        {
+          "index": 3,
+          "text": "near",
+          "zipf": 5.29
+        },
+        {
+          "index": 4,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 5,
+          "text": "forest",
+          "zipf": 4.7
+        },
+        {
+          "index": 6,
+          "text": "for",
+          "zipf": 7.01
+        },
+        {
+          "index": 7,
+          "text": "several",
+          "zipf": 5.39
+        },
+        {
+          "index": 8,
+          "text": "quiet",
+          "zipf": 4.65
+        },
+        {
+          "index": 9,
+          "text": "days.",
+          "zipf": 5.61
+        }
+      ]
+    },
+    {
+      "id": "p09l",
+      "text": "The friends camped near the lagoon for several quiet days.",
+      "condition": "low",
+      "pair": "p09",
+      "target": {
+        "word_index": 5,
+        "word": "lagoon",
+        "zipf": 3.43,
+        "length": 6
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 5,
+          "end": 6,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "friends",
+          "zipf": 5.43
+        },
+        {
+          "index": 2,
+          "text": "camped",
+          "zipf": 3.27
+        },
+        {
+          "index": 3,
+          "text": "near",
+          "zipf": 5.29
+        },
+        {
+          "index": 4,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 5,
+          "text": "lagoon",
+          "zipf": 3.43
+        },
+        {
+          "index": 6,
+          "text": "for",
+          "zipf": 7.01
+        },
+        {
+          "index": 7,
+          "text": "several",
+          "zipf": 5.39
+        },
+        {
+          "index": 8,
+          "text": "quiet",
+          "zipf": 4.65
+        },
+        {
+          "index": 9,
+          "text": "days.",
+          "zipf": 5.61
+        }
+      ]
+    },
+    {
+      "id": "p10h",
+      "text": "The narrow ring was made of silver and felt very cold.",
+      "condition": "high",
+      "pair": "p10",
+      "target": {
+        "word_index": 6,
+        "word": "silver",
+        "zipf": 4.81,
+        "length": 6
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 6,
+          "end": 7,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "narrow",
+          "zipf": 4.39
+        },
+        {
+          "index": 2,
+          "text": "ring",
+          "zipf": 4.81
+        },
+        {
+          "index": 3,
+          "text": "was",
+          "zipf": 6.82
+        },
+        {
+          "index": 4,
+          "text": "made",
+          "zipf": 5.92
+        },
+        {
+          "index": 5,
+          "text": "of",
+          "zipf": 7.4
+        },
+        {
+          "index": 6,
+          "text": "silver",
+          "zipf": 4.81
+        },
+        {
+          "index": 7,
+          "text": "and",
+          "zipf": 7.41
+        },
+        {
+          "index": 8,
+          "text": "felt",
+          "zipf": 5.13
+        },
+        {
+          "index": 9,
+          "text": "very",
+          "zipf": 6.0
+        },
+        {
+          "index": 10,
+          "text": "cold.",
+          "zipf": 5.02
+        }
+      ]
+    },
+    {
+      "id": "p10l",
+      "text": "The narrow ring was made of cobalt and felt very cold.",
+      "condition": "low",
+      "pair": "p10",
+      "target": {
+        "word_index": 6,
+        "word": "cobalt",
+        "zipf": 3.37,
+        "length": 6
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 6,
+          "end": 7,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "narrow",
+          "zipf": 4.39
+        },
+        {
+          "index": 2,
+          "text": "ring",
+          "zipf": 4.81
+        },
+        {
+          "index": 3,
+          "text": "was",
+          "zipf": 6.82
+        },
+        {
+          "index": 4,
+          "text": "made",
+          "zipf": 5.92
+        },
+        {
+          "index": 5,
+          "text": "of",
+          "zipf": 7.4
+        },
+        {
+          "index": 6,
+          "text": "cobalt",
+          "zipf": 3.37
+        },
+        {
+          "index": 7,
+          "text": "and",
+          "zipf": 7.41
+        },
+        {
+          "index": 8,
+          "text": "felt",
+          "zipf": 5.13
+        },
+        {
+          "index": 9,
+          "text": "very",
+          "zipf": 6.0
+        },
+        {
+          "index": 10,
+          "text": "cold.",
+          "zipf": 5.02
+        }
+      ]
+    },
+    {
+      "id": "p11h",
+      "text": "He slowly finished the coffee before the long meeting began.",
+      "condition": "high",
+      "pair": "p11",
+      "target": {
+        "word_index": 4,
+        "word": "coffee",
+        "zipf": 4.86,
+        "length": 6
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "He",
+          "zipf": 6.69
+        },
+        {
+          "index": 1,
+          "text": "slowly",
+          "zipf": 4.63
+        },
+        {
+          "index": 2,
+          "text": "finished",
+          "zipf": 4.94
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "coffee",
+          "zipf": 4.86
+        },
+        {
+          "index": 5,
+          "text": "before",
+          "zipf": 5.93
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "long",
+          "zipf": 5.81
+        },
+        {
+          "index": 8,
+          "text": "meeting",
+          "zipf": 5.15
+        },
+        {
+          "index": 9,
+          "text": "began.",
+          "zipf": 5.07
+        }
+      ]
+    },
+    {
+      "id": "p11l",
+      "text": "He slowly finished the cognac before the long meeting began.",
+      "condition": "low",
+      "pair": "p11",
+      "target": {
+        "word_index": 4,
+        "word": "cognac",
+        "zipf": 2.92,
+        "length": 6
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "He",
+          "zipf": 6.69
+        },
+        {
+          "index": 1,
+          "text": "slowly",
+          "zipf": 4.63
+        },
+        {
+          "index": 2,
+          "text": "finished",
+          "zipf": 4.94
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "cognac",
+          "zipf": 2.92
+        },
+        {
+          "index": 5,
+          "text": "before",
+          "zipf": 5.93
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "long",
+          "zipf": 5.81
+        },
+        {
+          "index": 8,
+          "text": "meeting",
+          "zipf": 5.15
+        },
+        {
+          "index": 9,
+          "text": "began.",
+          "zipf": 5.07
+        }
+      ]
+    },
+    {
+      "id": "p13h",
+      "text": "He picked a ripe apple from the tall garden tree.",
+      "condition": "high",
+      "pair": "p13",
+      "target": {
+        "word_index": 4,
+        "word": "apple",
+        "zipf": 4.76,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "He",
+          "zipf": 6.69
+        },
+        {
+          "index": 1,
+          "text": "picked",
+          "zipf": 4.72
+        },
+        {
+          "index": 2,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 3,
+          "text": "ripe",
+          "zipf": 3.67
+        },
+        {
+          "index": 4,
+          "text": "apple",
+          "zipf": 4.76
+        },
+        {
+          "index": 5,
+          "text": "from",
+          "zipf": 6.63
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "tall",
+          "zipf": 4.52
+        },
+        {
+          "index": 8,
+          "text": "garden",
+          "zipf": 4.77
+        },
+        {
+          "index": 9,
+          "text": "tree.",
+          "zipf": 4.85
+        }
+      ]
+    },
+    {
+      "id": "p13l",
+      "text": "He picked a ripe guava from the tall garden tree.",
+      "condition": "low",
+      "pair": "p13",
+      "target": {
+        "word_index": 4,
+        "word": "guava",
+        "zipf": 2.61,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "vocabulary"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "He",
+          "zipf": 6.69
+        },
+        {
+          "index": 1,
+          "text": "picked",
+          "zipf": 4.72
+        },
+        {
+          "index": 2,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 3,
+          "text": "ripe",
+          "zipf": 3.67
+        },
+        {
+          "index": 4,
+          "text": "guava",
+          "zipf": 2.61
+        },
+        {
+          "index": 5,
+          "text": "from",
+          "zipf": 6.63
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "tall",
+          "zipf": 4.52
+        },
+        {
+          "index": 8,
+          "text": "garden",
+          "zipf": 4.77
+        },
+        {
+          "index": 9,
+          "text": "tree.",
+          "zipf": 4.85
+        }
+      ]
+    }
+  ]
+}

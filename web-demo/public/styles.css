@@ -1,0 +1,112 @@
+:root {
+  --bg: #1e1e1e;
+  --fg: #e6e6e6;
+  --muted: #9a9a9a;
+  --accent: #00b35a;
+  --amber: #ffa500;
+  --panel: #2a2a2a;
+  --border: #444;
+}
+
+* { box-sizing: border-box; }
+
+/* The hidden attribute must always win. Without this, any rule that sets
+   display (such as .row's flex) silently overrides the user-agent's
+   [hidden] { display: none } and "hidden" elements stay visible. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  padding: 16px 24px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+.privacy { margin: 0; color: var(--accent); font-size: 13px; }
+
+main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.screen {
+  max-width: 760px;
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px 32px;
+  line-height: 1.5;
+}
+
+.screen p { margin: 0 0 14px; }
+.error { color: #ff6b6b; }
+.note { color: var(--amber); min-height: 1.2em; }
+
+button {
+  font: inherit;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #333;
+  color: var(--fg);
+  cursor: pointer;
+}
+button:hover { background: #3c3c3c; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #06240f; font-weight: 600; }
+button.primary:hover { filter: brightness(1.08); }
+.row { display: flex; gap: 12px; margin-top: 8px; }
+
+#passage {
+  font-size: 34px;
+  line-height: 1.9;
+  letter-spacing: 0.3px;
+}
+#passage .word { padding: 2px 4px; border-radius: 4px; }
+#passage .word.hit { outline: 2px solid var(--amber); }
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Small mirrored self-view so the reader can check the camera found them. */
+#cam {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: 176px;
+  height: 99px;
+  object-fit: cover;
+  transform: scaleX(-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  z-index: 60;
+  background: #000;
+  display: none;
+}
+#cam.show { display: block; }
+
+footer {
+  padding: 8px 24px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+  min-height: 1.4em;
+}

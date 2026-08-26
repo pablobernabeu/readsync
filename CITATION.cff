@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use readsync, please cite it as below."
+type: software
+title: "readsync: offline-first, secure toolkit for synchronised reading experiments"
+authors:
+  - family-names: Bernabeu
+    given-names: Pablo
+    orcid: "https://orcid.org/0000-0003-1083-2460"
+version: 0.1.0
+date-released: 2026-08-26
+license: MIT
+repository-code: "https://github.com/pablobernabeu/readsync"
+keywords:
+  - reading
+  - eye-tracking
+  - psycholinguistics
+  - EEG
+  - offline
+  - open-science

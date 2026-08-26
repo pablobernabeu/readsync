@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Interlexis: webcam reading demo</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Interlexis: webcam reading demo</h1>
+      <p class="privacy">
+        All processing happens in your browser with your webcam. No video, gaze or
+        calibration data leaves this device, and nothing is uploaded.
+      </p>
+    </header>
+
+    <main>
+      <section id="intro" class="screen">
+        <p>
+          This is the browser benchmark strand of Interlexis, a project on reading in a
+          second language: head-pose-aware webcam gaze, running entirely on your machine.
+          It calibrates against a few on-screen dots, then shows short sentences with a
+          live gaze dot. It runs the same gaze pipeline as the readsync desktop toolkit,
+          ported to the browser.
+        </p>
+        <p>
+          Webcam gaze is coarse. It resolves a region of a line, not a single letter.
+          Sit with the screen well lit, keep your head fairly still, and recalibrate
+          when asked.
+        </p>
+        <button id="start" class="primary">Allow camera and begin</button>
+        <p id="intro-error" class="error" hidden></p>
+      </section>
+
+      <section id="instruction" class="screen" hidden>
+        <div id="instruction-text"></div>
+        <button id="instruction-go" class="primary">Begin</button>
+      </section>
+
+      <section id="confirm" class="screen" hidden>
+        <div id="confirm-text"></div>
+        <div class="row">
+          <button id="confirm-use" class="primary">Use this</button>
+          <button id="confirm-redo">Redo</button>
+        </div>
+      </section>
+
+      <section id="reading" class="screen" hidden>
+        <div id="passage"></div>
+        <p id="reading-note" class="note"></p>
+        <div class="row" id="reading-controls" hidden>
+          <button id="read-next" class="primary">Next sentence</button>
+          <button id="read-recal">Recalibrate</button>
+          <button id="read-finish">Finish</button>
+        </div>
+      </section>
+
+      <section id="done" class="screen" hidden>
+        <div id="done-text"></div>
+        <div class="row">
+          <button id="download" class="primary">Download CSV (stays local)</button>
+          <button id="restart">Run again</button>
+        </div>
+      </section>
+    </main>
+
+    <canvas id="overlay"></canvas>
+    <video id="cam" playsinline muted></video>
+    <footer><span id="hint"></span></footer>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>

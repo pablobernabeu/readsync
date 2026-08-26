@@ -1,0 +1,1479 @@
+{
+  "name": "Controlled word-length reading set (English)",
+  "language": "en",
+  "license": "CC-BY-4.0",
+  "source": "Constructed for readsync. Target and per-word frequencies are Zipf values from the wordfreq package.",
+  "citation": [
+    "Frequencies: Speer, R. (2022). wordfreq (v3.0.2). Zenodo. https://doi.org/10.5281/zenodo.7199437",
+    "Zipf scale: van Heuven, W. J. B., Mandera, P., Keuleers, E., & Brysbaert, M. (2014). SUBTLEX-UK: A new and improved word frequency database for British English. Quarterly Journal of Experimental Psychology, 67(6), 1176-1190. https://doi.org/10.1080/17470218.2013.850521",
+    "Frequency and length effects in reading: Rayner, K. (1998). Eye movements in reading and information processing: 20 years of research. Psychological Bulletin, 124(3), 372-422. https://doi.org/10.1037/0033-2909.124.3.372",
+    "Frequency effect, updated review: Brysbaert, M., Mandera, P., & Keuleers, E. (2018). The word frequency effect in word processing: An updated review. Current Directions in Psychological Science, 27(1), 45-50. https://doi.org/10.1177/0963721417727521"
+  ],
+  "design": "Matched frame pairs. Each pair is one sentence that differs only in the target word, which is short in one member and long in the other while the two are matched in frequency, so word length is the only manipulated property.",
+  "items": [
+    {
+      "id": "L01s",
+      "text": "He wanted a good job after leaving the school.",
+      "condition": "short",
+      "pair": "L01",
+      "target": {
+        "word_index": 4,
+        "word": "job",
+        "zipf": 5.5,
+        "length": 3
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "He",
+          "zipf": 6.69
+        },
+        {
+          "index": 1,
+          "text": "wanted",
+          "zipf": 5.36
+        },
+        {
+          "index": 2,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 3,
+          "text": "good",
+          "zipf": 6.12
+        },
+        {
+          "index": 4,
+          "text": "job",
+          "zipf": 5.5
+        },
+        {
+          "index": 5,
+          "text": "after",
+          "zipf": 6.11
+        },
+        {
+          "index": 6,
+          "text": "leaving",
+          "zipf": 4.98
+        },
+        {
+          "index": 7,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 8,
+          "text": "school.",
+          "zipf": 5.71
+        }
+      ]
+    },
+    {
+      "id": "L01l",
+      "text": "He wanted a good career after leaving the school.",
+      "condition": "long",
+      "pair": "L01",
+      "target": {
+        "word_index": 4,
+        "word": "career",
+        "zipf": 5.07,
+        "length": 6
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "He",
+          "zipf": 6.69
+        },
+        {
+          "index": 1,
+          "text": "wanted",
+          "zipf": 5.36
+        },
+        {
+          "index": 2,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 3,
+          "text": "good",
+          "zipf": 6.12
+        },
+        {
+          "index": 4,
+          "text": "career",
+          "zipf": 5.07
+        },
+        {
+          "index": 5,
+          "text": "after",
+          "zipf": 6.11
+        },
+        {
+          "index": 6,
+          "text": "leaving",
+          "zipf": 4.98
+        },
+        {
+          "index": 7,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 8,
+          "text": "school.",
+          "zipf": 5.71
+        }
+      ]
+    },
+    {
+      "id": "L06s",
+      "text": "She wrapped the gift in bright and shiny paper.",
+      "condition": "short",
+      "pair": "L06",
+      "target": {
+        "word_index": 3,
+        "word": "gift",
+        "zipf": 4.78,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "She",
+          "zipf": 6.26
+        },
+        {
+          "index": 1,
+          "text": "wrapped",
+          "zipf": 4.15
+        },
+        {
+          "index": 2,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 3,
+          "text": "gift",
+          "zipf": 4.78
+        },
+        {
+          "index": 4,
+          "text": "in",
+          "zipf": 7.27
+        },
+        {
+          "index": 5,
+          "text": "bright",
+          "zipf": 4.61
+        },
+        {
+          "index": 6,
+          "text": "and",
+          "zipf": 7.41
+        },
+        {
+          "index": 7,
+          "text": "shiny",
+          "zipf": 3.88
+        },
+        {
+          "index": 8,
+          "text": "paper.",
+          "zipf": 5.07
+        }
+      ]
+    },
+    {
+      "id": "L06l",
+      "text": "She wrapped the present in bright and shiny paper.",
+      "condition": "long",
+      "pair": "L06",
+      "target": {
+        "word_index": 3,
+        "word": "present",
+        "zipf": 5.18,
+        "length": 7
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "She",
+          "zipf": 6.26
+        },
+        {
+          "index": 1,
+          "text": "wrapped",
+          "zipf": 4.15
+        },
+        {
+          "index": 2,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 3,
+          "text": "present",
+          "zipf": 5.18
+        },
+        {
+          "index": 4,
+          "text": "in",
+          "zipf": 7.27
+        },
+        {
+          "index": 5,
+          "text": "bright",
+          "zipf": 4.61
+        },
+        {
+          "index": 6,
+          "text": "and",
+          "zipf": 7.41
+        },
+        {
+          "index": 7,
+          "text": "shiny",
+          "zipf": 3.88
+        },
+        {
+          "index": 8,
+          "text": "paper.",
+          "zipf": 5.07
+        }
+      ]
+    },
+    {
+      "id": "L07s",
+      "text": "They planned a long trip to the rocky coast.",
+      "condition": "short",
+      "pair": "L07",
+      "target": {
+        "word_index": 4,
+        "word": "trip",
+        "zipf": 4.9,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "planned",
+          "zipf": 4.69
+        },
+        {
+          "index": 2,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 3,
+          "text": "long",
+          "zipf": 5.81
+        },
+        {
+          "index": 4,
+          "text": "trip",
+          "zipf": 4.9
+        },
+        {
+          "index": 5,
+          "text": "to",
+          "zipf": 7.43
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "rocky",
+          "zipf": 4.16
+        },
+        {
+          "index": 8,
+          "text": "coast.",
+          "zipf": 4.87
+        }
+      ]
+    },
+    {
+      "id": "L07l",
+      "text": "They planned a long journey to the rocky coast.",
+      "condition": "long",
+      "pair": "L07",
+      "target": {
+        "word_index": 4,
+        "word": "journey",
+        "zipf": 4.65,
+        "length": 7
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "planned",
+          "zipf": 4.69
+        },
+        {
+          "index": 2,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 3,
+          "text": "long",
+          "zipf": 5.81
+        },
+        {
+          "index": 4,
+          "text": "journey",
+          "zipf": 4.65
+        },
+        {
+          "index": 5,
+          "text": "to",
+          "zipf": 7.43
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "rocky",
+          "zipf": 4.16
+        },
+        {
+          "index": 8,
+          "text": "coast.",
+          "zipf": 4.87
+        }
+      ]
+    },
+    {
+      "id": "L08s",
+      "text": "The teacher set a hard task for the class.",
+      "condition": "short",
+      "pair": "L08",
+      "target": {
+        "word_index": 5,
+        "word": "task",
+        "zipf": 4.65,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 5,
+          "end": 6,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "teacher",
+          "zipf": 4.88
+        },
+        {
+          "index": 2,
+          "text": "set",
+          "zipf": 5.59
+        },
+        {
+          "index": 3,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 4,
+          "text": "hard",
+          "zipf": 5.53
+        },
+        {
+          "index": 5,
+          "text": "task",
+          "zipf": 4.65
+        },
+        {
+          "index": 6,
+          "text": "for",
+          "zipf": 7.01
+        },
+        {
+          "index": 7,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 8,
+          "text": "class.",
+          "zipf": 5.36
+        }
+      ]
+    },
+    {
+      "id": "L08l",
+      "text": "The teacher set a hard assignment for the class.",
+      "condition": "long",
+      "pair": "L08",
+      "target": {
+        "word_index": 5,
+        "word": "assignment",
+        "zipf": 4.18,
+        "length": 10
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 5,
+          "end": 6,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "The",
+          "zipf": 7.73
+        },
+        {
+          "index": 1,
+          "text": "teacher",
+          "zipf": 4.88
+        },
+        {
+          "index": 2,
+          "text": "set",
+          "zipf": 5.59
+        },
+        {
+          "index": 3,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 4,
+          "text": "hard",
+          "zipf": 5.53
+        },
+        {
+          "index": 5,
+          "text": "assignment",
+          "zipf": 4.18
+        },
+        {
+          "index": 6,
+          "text": "for",
+          "zipf": 7.01
+        },
+        {
+          "index": 7,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 8,
+          "text": "class.",
+          "zipf": 5.36
+        }
+      ]
+    },
+    {
+      "id": "L09s",
+      "text": "They agreed on a clear plan for the year.",
+      "condition": "short",
+      "pair": "L09",
+      "target": {
+        "word_index": 5,
+        "word": "plan",
+        "zipf": 5.29,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 5,
+          "end": 6,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "agreed",
+          "zipf": 4.84
+        },
+        {
+          "index": 2,
+          "text": "on",
+          "zipf": 6.91
+        },
+        {
+          "index": 3,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 4,
+          "text": "clear",
+          "zipf": 5.25
+        },
+        {
+          "index": 5,
+          "text": "plan",
+          "zipf": 5.29
+        },
+        {
+          "index": 6,
+          "text": "for",
+          "zipf": 7.01
+        },
+        {
+          "index": 7,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 8,
+          "text": "year.",
+          "zipf": 5.96
+        }
+      ]
+    },
+    {
+      "id": "L09l",
+      "text": "They agreed on a clear strategy for the year.",
+      "condition": "long",
+      "pair": "L09",
+      "target": {
+        "word_index": 5,
+        "word": "strategy",
+        "zipf": 4.74,
+        "length": 8
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 5,
+          "end": 6,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "agreed",
+          "zipf": 4.84
+        },
+        {
+          "index": 2,
+          "text": "on",
+          "zipf": 6.91
+        },
+        {
+          "index": 3,
+          "text": "a",
+          "zipf": 7.36
+        },
+        {
+          "index": 4,
+          "text": "clear",
+          "zipf": 5.25
+        },
+        {
+          "index": 5,
+          "text": "strategy",
+          "zipf": 4.74
+        },
+        {
+          "index": 6,
+          "text": "for",
+          "zipf": 7.01
+        },
+        {
+          "index": 7,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 8,
+          "text": "year.",
+          "zipf": 5.96
+        }
+      ]
+    },
+    {
+      "id": "L10s",
+      "text": "He carried the tool across the building site.",
+      "condition": "short",
+      "pair": "L10",
+      "target": {
+        "word_index": 3,
+        "word": "tool",
+        "zipf": 4.56,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "He",
+          "zipf": 6.69
+        },
+        {
+          "index": 1,
+          "text": "carried",
+          "zipf": 4.77
+        },
+        {
+          "index": 2,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 3,
+          "text": "tool",
+          "zipf": 4.56
+        },
+        {
+          "index": 4,
+          "text": "across",
+          "zipf": 5.25
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "building",
+          "zipf": 5.29
+        },
+        {
+          "index": 7,
+          "text": "site.",
+          "zipf": 5.22
+        }
+      ]
+    },
+    {
+      "id": "L10l",
+      "text": "He carried the equipment across the building site.",
+      "condition": "long",
+      "pair": "L10",
+      "target": {
+        "word_index": 3,
+        "word": "equipment",
+        "zipf": 4.88,
+        "length": 9
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "He",
+          "zipf": 6.69
+        },
+        {
+          "index": 1,
+          "text": "carried",
+          "zipf": 4.77
+        },
+        {
+          "index": 2,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 3,
+          "text": "equipment",
+          "zipf": 4.88
+        },
+        {
+          "index": 4,
+          "text": "across",
+          "zipf": 5.25
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "building",
+          "zipf": 5.29
+        },
+        {
+          "index": 7,
+          "text": "site.",
+          "zipf": 5.22
+        }
+      ]
+    },
+    {
+      "id": "L11s",
+      "text": "She spoke to the boss about the new plan.",
+      "condition": "short",
+      "pair": "L11",
+      "target": {
+        "word_index": 4,
+        "word": "boss",
+        "zipf": 4.76,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "She",
+          "zipf": 6.26
+        },
+        {
+          "index": 1,
+          "text": "spoke",
+          "zipf": 4.61
+        },
+        {
+          "index": 2,
+          "text": "to",
+          "zipf": 7.43
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "boss",
+          "zipf": 4.76
+        },
+        {
+          "index": 5,
+          "text": "about",
+          "zipf": 6.4
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "new",
+          "zipf": 6.25
+        },
+        {
+          "index": 8,
+          "text": "plan.",
+          "zipf": 5.29
+        }
+      ]
+    },
+    {
+      "id": "L11l",
+      "text": "She spoke to the manager about the new plan.",
+      "condition": "long",
+      "pair": "L11",
+      "target": {
+        "word_index": 4,
+        "word": "manager",
+        "zipf": 4.97,
+        "length": 7
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "She",
+          "zipf": 6.26
+        },
+        {
+          "index": 1,
+          "text": "spoke",
+          "zipf": 4.61
+        },
+        {
+          "index": 2,
+          "text": "to",
+          "zipf": 7.43
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "manager",
+          "zipf": 4.97
+        },
+        {
+          "index": 5,
+          "text": "about",
+          "zipf": 6.4
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "new",
+          "zipf": 6.25
+        },
+        {
+          "index": 8,
+          "text": "plan.",
+          "zipf": 5.29
+        }
+      ]
+    },
+    {
+      "id": "L13s",
+      "text": "She asked for help with the heavy wooden boxes.",
+      "condition": "short",
+      "pair": "L13",
+      "target": {
+        "word_index": 3,
+        "word": "help",
+        "zipf": 5.75,
+        "length": 4
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "She",
+          "zipf": 6.26
+        },
+        {
+          "index": 1,
+          "text": "asked",
+          "zipf": 5.3
+        },
+        {
+          "index": 2,
+          "text": "for",
+          "zipf": 7.01
+        },
+        {
+          "index": 3,
+          "text": "help",
+          "zipf": 5.75
+        },
+        {
+          "index": 4,
+          "text": "with",
+          "zipf": 6.85
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "heavy",
+          "zipf": 4.96
+        },
+        {
+          "index": 7,
+          "text": "wooden",
+          "zipf": 4.33
+        },
+        {
+          "index": 8,
+          "text": "boxes.",
+          "zipf": 4.34
+        }
+      ]
+    },
+    {
+      "id": "L13l",
+      "text": "She asked for support with the heavy wooden boxes.",
+      "condition": "long",
+      "pair": "L13",
+      "target": {
+        "word_index": 3,
+        "word": "support",
+        "zipf": 5.53,
+        "length": 7
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "She",
+          "zipf": 6.26
+        },
+        {
+          "index": 1,
+          "text": "asked",
+          "zipf": 5.3
+        },
+        {
+          "index": 2,
+          "text": "for",
+          "zipf": 7.01
+        },
+        {
+          "index": 3,
+          "text": "support",
+          "zipf": 5.53
+        },
+        {
+          "index": 4,
+          "text": "with",
+          "zipf": 6.85
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "heavy",
+          "zipf": 4.96
+        },
+        {
+          "index": 7,
+          "text": "wooden",
+          "zipf": 4.33
+        },
+        {
+          "index": 8,
+          "text": "boxes.",
+          "zipf": 4.34
+        }
+      ]
+    },
+    {
+      "id": "L15s",
+      "text": "They waited outside the store before the evening show.",
+      "condition": "short",
+      "pair": "L15",
+      "target": {
+        "word_index": 4,
+        "word": "store",
+        "zipf": 5.02,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "waited",
+          "zipf": 4.26
+        },
+        {
+          "index": 2,
+          "text": "outside",
+          "zipf": 5.25
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "store",
+          "zipf": 5.02
+        },
+        {
+          "index": 5,
+          "text": "before",
+          "zipf": 5.93
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "evening",
+          "zipf": 4.86
+        },
+        {
+          "index": 8,
+          "text": "show.",
+          "zipf": 5.68
+        }
+      ]
+    },
+    {
+      "id": "L15l",
+      "text": "They waited outside the building before the evening show.",
+      "condition": "long",
+      "pair": "L15",
+      "target": {
+        "word_index": 4,
+        "word": "building",
+        "zipf": 5.29,
+        "length": 8
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 4,
+          "end": 5,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "waited",
+          "zipf": 4.26
+        },
+        {
+          "index": 2,
+          "text": "outside",
+          "zipf": 5.25
+        },
+        {
+          "index": 3,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 4,
+          "text": "building",
+          "zipf": 5.29
+        },
+        {
+          "index": 5,
+          "text": "before",
+          "zipf": 5.93
+        },
+        {
+          "index": 6,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 7,
+          "text": "evening",
+          "zipf": 4.86
+        },
+        {
+          "index": 8,
+          "text": "show.",
+          "zipf": 5.68
+        }
+      ]
+    },
+    {
+      "id": "L16s",
+      "text": "She explained the aim of the new research project.",
+      "condition": "short",
+      "pair": "L16",
+      "target": {
+        "word_index": 3,
+        "word": "aim",
+        "zipf": 4.51,
+        "length": 3
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "She",
+          "zipf": 6.26
+        },
+        {
+          "index": 1,
+          "text": "explained",
+          "zipf": 4.59
+        },
+        {
+          "index": 2,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 3,
+          "text": "aim",
+          "zipf": 4.51
+        },
+        {
+          "index": 4,
+          "text": "of",
+          "zipf": 7.4
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "new",
+          "zipf": 6.25
+        },
+        {
+          "index": 7,
+          "text": "research",
+          "zipf": 5.39
+        },
+        {
+          "index": 8,
+          "text": "project.",
+          "zipf": 5.22
+        }
+      ]
+    },
+    {
+      "id": "L16l",
+      "text": "She explained the objective of the new research project.",
+      "condition": "long",
+      "pair": "L16",
+      "target": {
+        "word_index": 3,
+        "word": "objective",
+        "zipf": 4.36,
+        "length": 9
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "She",
+          "zipf": 6.26
+        },
+        {
+          "index": 1,
+          "text": "explained",
+          "zipf": 4.59
+        },
+        {
+          "index": 2,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 3,
+          "text": "objective",
+          "zipf": 4.36
+        },
+        {
+          "index": 4,
+          "text": "of",
+          "zipf": 7.4
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "new",
+          "zipf": 6.25
+        },
+        {
+          "index": 7,
+          "text": "research",
+          "zipf": 5.39
+        },
+        {
+          "index": 8,
+          "text": "project.",
+          "zipf": 5.22
+        }
+      ]
+    },
+    {
+      "id": "L17s",
+      "text": "They painted the house during the warm dry summer.",
+      "condition": "short",
+      "pair": "L17",
+      "target": {
+        "word_index": 3,
+        "word": "house",
+        "zipf": 5.71,
+        "length": 5
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "painted",
+          "zipf": 4.35
+        },
+        {
+          "index": 2,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 3,
+          "text": "house",
+          "zipf": 5.71
+        },
+        {
+          "index": 4,
+          "text": "during",
+          "zipf": 5.72
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "warm",
+          "zipf": 4.71
+        },
+        {
+          "index": 7,
+          "text": "dry",
+          "zipf": 4.74
+        },
+        {
+          "index": 8,
+          "text": "summer.",
+          "zipf": 5.23
+        }
+      ]
+    },
+    {
+      "id": "L17l",
+      "text": "They painted the building during the warm dry summer.",
+      "condition": "long",
+      "pair": "L17",
+      "target": {
+        "word_index": 3,
+        "word": "building",
+        "zipf": 5.29,
+        "length": 8
+      },
+      "regions": [
+        {
+          "id": "target",
+          "start": 3,
+          "end": 4,
+          "layer": "decoding"
+        }
+      ],
+      "words": [
+        {
+          "index": 0,
+          "text": "They",
+          "zipf": 6.5
+        },
+        {
+          "index": 1,
+          "text": "painted",
+          "zipf": 4.35
+        },
+        {
+          "index": 2,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 3,
+          "text": "building",
+          "zipf": 5.29
+        },
+        {
+          "index": 4,
+          "text": "during",
+          "zipf": 5.72
+        },
+        {
+          "index": 5,
+          "text": "the",
+          "zipf": 7.73
+        },
+        {
+          "index": 6,
+          "text": "warm",
+          "zipf": 4.71
+        },
+        {
+          "index": 7,
+          "text": "dry",
+          "zipf": 4.74
+        },
+        {
+          "index": 8,
+          "text": "summer.",
+          "zipf": 5.23
+        }
+      ]
+    }
+  ]
+}

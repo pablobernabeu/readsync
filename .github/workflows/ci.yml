@@ -1,0 +1,43 @@
+# CI for the standalone readsync repository. While readsync lives inside the
+# monorepo this nested workflow is inert, because GitHub runs workflows only
+# from the repository root, where readsync-ci.yml covers this folder. When
+# readsync is split into its own repository this directory becomes the root and
+# this workflow takes over unchanged.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check .
+      - name: Type-check
+        run: mypy
+      - name: Test
+        run: pytest
+
+  web-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Test the browser gaze pipeline
+        run: node --test
+        working-directory: web-demo
