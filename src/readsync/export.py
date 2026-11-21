@@ -17,7 +17,7 @@ from typing import Any
 
 from .stimuli import StimulusItem
 from .storage import EventLog
-from .text import FixedWidthLayout, Passage, Region, interest_areas, region_at
+from .text import FixedWidthLayout, Passage, Region, interest_areas
 
 __all__ = ["events_to_csv", "interest_area_rows", "interest_areas_to_csv", "log_to_csv"]
 
@@ -70,8 +70,9 @@ def interest_area_rows(
 
     ``layout`` must be the one the session used, which defaults to
     :class:`readsync.text.FixedWidthLayout` in both places. Words outside every
-    annotated region have empty region fields. ``line`` counts from 0, as
-    ``word`` does.
+    annotated region have empty region fields, and a word inside several
+    overlapping regions lists them all, joined by ``|`` in annotation order.
+    ``line`` counts from 0, as ``word`` does.
     """
     layout = layout or FixedWidthLayout()
     rows: list[dict[str, Any]] = []
@@ -79,7 +80,7 @@ def interest_area_rows(
         passage = item.passage if isinstance(item, StimulusItem) else item
         regions: list[Region] = item.regions if isinstance(item, StimulusItem) else []
         for area in interest_areas(passage.words, layout):
-            region = region_at(regions, area.word.index)
+            here = [r for r in regions if r.contains_word(area.word.index)]
             rows.append(
                 {
                     "passage": passage.id,
@@ -90,9 +91,9 @@ def interest_area_rows(
                     "y1": area.y1,
                     "x2": area.x2,
                     "y2": area.y2,
-                    "region": region.id if region else "",
-                    "layer": region.layer if region else "",
-                    "role": region.role if region else "",
+                    "region": "|".join(r.id for r in here),
+                    "layer": "|".join(r.layer for r in here),
+                    "role": "|".join(r.role for r in here),
                 }
             )
     return rows

@@ -374,3 +374,88 @@ def test_a_log_that_already_holds_a_session_is_refused(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="own log file"):
         session.run([Passage(id="p1", text="a")])
+
+
+class _WordTracker(NullTracker):
+    """Returns gaze at the centre of a scripted word, one per poll."""
+
+    def __init__(self, layout: FixedWidthLayout, passage: Passage, words: list[int]) -> None:
+        super().__init__()
+        from readsync.text import interest_areas
+
+        self._areas = interest_areas(passage.words, layout)
+        self._words = list(words)
+
+    def poll(self, t: float) -> GazeSample | None:
+        if not self._recording or not self._words:
+            return None
+        area = self._areas[self._words.pop(0)]
+        return GazeSample(t=t, x=(area.x1 + area.x2) / 2, y=(area.y1 + area.y2) / 2)
+
+
+def _region_events(
+    tmp_path: Path, regions: list[Region], words: list[int]
+) -> list[tuple[str, str, str]]:
+    layout = FixedWidthLayout()
+    passage = Passage(id="p1", text="w0 w1 w2 w3 w4 w5 w6 w7")
+    log = EventLog(tmp_path / "regions.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p",
+        tracker=_WordTracker(layout, passage, words),
+        presenter=HeadlessPresenter(seconds_per_passage=len(words) / 60 + 0.05),
+        log=log,
+        layout=layout,
+    )
+    session.run_items([StimulusItem(passage=passage, regions=regions)])
+    events = [
+        (e["type"], e["region"], e.get("reason", ""))
+        for e in log.events()
+        if e["type"] in ("region_enter", "region_exit")
+    ]
+    return events
+
+
+def test_nested_regions_each_get_their_own_events(tmp_path: Path) -> None:
+    sentence = Region(id="sent", start=0, end=8, layer="integration")
+    target = Region(id="crit", start=3, end=5, layer="vocabulary")
+    events = _region_events(tmp_path, [sentence, target], [1, 3, 4, 6])
+    assert events == [
+        ("region_enter", "sent", ""),
+        ("region_enter", "crit", ""),
+        ("region_exit", "crit", "gaze"),
+        ("region_exit", "sent", "passage_end"),
+    ]
+
+
+def test_partially_overlapping_regions_do_not_exit_while_gaze_is_inside(
+    tmp_path: Path,
+) -> None:
+    first = Region(id="a", start=2, end=5, layer="x")
+    second = Region(id="b", start=0, end=3, layer="y")
+    events = _region_events(tmp_path, [first, second], [1, 2, 4])
+    assert events == [
+        ("region_enter", "b", ""),
+        ("region_enter", "a", ""),
+        ("region_exit", "b", "gaze"),
+        ("region_exit", "a", "passage_end"),
+    ]
+
+
+def test_an_escalated_drift_check_logs_the_calibration_even_if_its_message_repeats(
+    tmp_path: Path,
+) -> None:
+    class _Escalating(_CheckedTracker):
+        def drift_correct(self) -> float | None:
+            self.drift_calls += 1
+            return None  # aborted or escalated into a recalibration
+
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p",
+        tracker=_Escalating(),
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=log,
+    )
+    session.run([Passage(id="p1", text="a"), Passage(id="p2", text="b")])
+    calibrations = [e for e in log.events() if e["type"] == "calibration"]
+    assert len(calibrations) == 3  # the initial calibration and one per escalation

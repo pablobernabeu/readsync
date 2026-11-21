@@ -49,7 +49,6 @@ from .text import (
     Region,
     interest_areas,
     locate,
-    region_at,
 )
 from .trackers import Tracker
 
@@ -214,16 +213,21 @@ class ReadingSession:
         self.marker_sink.send(marker)
         self.log.append(event)
 
-    def _region_event(self, kind: str, t: float, passage_id: str, region: Region) -> None:
+    def _region_event(
+        self, kind: str, t: float, passage_id: str, region: Region, **detail: object
+    ) -> None:
         where = {"passage": passage_id, "region": region.id, "layer": region.layer}
-        self._emit(Marker(kind, t, where), {"type": kind, "t": t, **where})
+        self._emit(Marker(kind, t, where), {"type": kind, "t": t, **where, **detail})
 
     def _run_passage(
         self, passage: Passage, regions: list[Region], areas: list[InterestArea]
     ) -> None:
         self.presenter.start_passage(passage, areas)
         current_word: int | None = None
-        current_region: Region | None = None
+        # The regions that contain the current word, in annotation order.
+        # Tracking all of them lets nested and overlapping regions, for example
+        # a target word inside a sentence-level region, each get their events.
+        active: list[Region] = []
         onset_logged = False
         try:
             while True:
@@ -248,30 +252,35 @@ class ReadingSession:
                     )
                     area = locate(areas, sample.x, sample.y) if sample.valid else None
                     word_index = area.word.index if area is not None else None
-                    # A sample that resolves to no word, a blink or gaze in the
-                    # space between words, holds the current word and region
-                    # instead of ending the visit, so enter and exit markers
-                    # fire on genuine transitions only.
-                    if word_index is not None:
-                        if word_index != current_word:
-                            where = {"passage": passage.id, "word": word_index}
-                            self._emit(
-                                Marker("word_enter", t, where),
-                                {"type": "word_enter", "t": t, **where},
-                            )
-                            current_word = word_index
-                        region = region_at(regions, word_index)
-                        if region is not current_region:
-                            if current_region is not None:
+                    # A sample that resolves to no word, during a blink, in the
+                    # space between words or off the text, holds the current
+                    # word and regions, so enter and exit events fire only when
+                    # the gaze lands on another word.
+                    if word_index is not None and word_index != current_word:
+                        where = {"passage": passage.id, "word": word_index}
+                        self._emit(
+                            Marker("word_enter", t, where),
+                            {"type": "word_enter", "t": t, **where, "tracker_t": sample.t},
+                        )
+                        current_word = word_index
+                        here = [r for r in regions if r.contains_word(word_index)]
+                        for region in active:
+                            if region not in here:
                                 self._region_event(
-                                    "region_exit", t, passage.id, current_region
+                                    "region_exit", t, passage.id, region,
+                                    reason="gaze", tracker_t=sample.t,
                                 )
-                            if region is not None:
-                                self._region_event("region_enter", t, passage.id, region)
-                            current_region = region
+                        for region in here:
+                            if region not in active:
+                                self._region_event(
+                                    "region_enter", t, passage.id, region, tracker_t=sample.t
+                                )
+                        active = here
                 if finished:
-                    if current_region is not None:
-                        self._region_event("region_exit", t, passage.id, current_region)
+                    for region in active:
+                        self._region_event(
+                            "region_exit", t, passage.id, region, reason="passage_end"
+                        )
                     self._emit(
                         Marker("passage_offset", t, {"passage": passage.id}),
                         {"type": "passage_offset", "t": t, "passage": passage.id},
@@ -288,11 +297,12 @@ class ReadingSession:
         self.log.append(
             {"type": "drift_check", "t": self._now(), "passage": passage_id, "error": error}
         )
-        # A drift check can escalate into a full recalibration; when the
-        # tracker's calibration message changed, record the fresh outcome so
-        # the quality report shows every calibration, not only the first.
+        # A drift check that was aborted or escalated into a recalibration
+        # reports no error. Its calibration outcome is logged then, and also
+        # whenever the tracker's message changes, so every recalibration shows
+        # in the quality report even when its message repeats an earlier one.
         message = getattr(self.tracker, "last_calibration_message", None)
-        if message is not None and str(message) != self._last_calibration:
+        if message is not None and (error is None or str(message) != self._last_calibration):
             self._last_calibration = str(message)
             self.log.append(
                 {"type": "calibration", "t": self._now(), "detail": self._last_calibration}
