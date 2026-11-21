@@ -12,7 +12,7 @@ pytest
 cd web-demo && node --test   # when changing the browser demo
 ```
 
-The core runs without research hardware or a display, so the test suite runs on any machine with Python 3.10 or later. Code that needs a device or a display sits behind protocols and lazy imports and is not exercised by the default suite. One test runs the EyeLink backend's call sequence in pylink's dummy mode when `sr-research-pylink` is installed, and two tests of the error raised for a missing extra skip when that extra is installed.
+The core runs without research hardware or a display, so the test suite runs on any machine with Python 3.10 or later. Code that needs a device or a display sits behind protocols and imports its dependencies only when used. The tests exercise it with stand-ins for PsychoPy, pylink and Lab Streaming Layer, which check the calls readsync makes but not how the devices respond. One test runs the EyeLink backend's call sequence in pylink's dummy mode when `sr-research-pylink` is installed, and two tests of the error raised for a missing extra skip when that extra is installed.
 
 ## Ground rules
 
