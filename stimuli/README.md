@@ -12,7 +12,7 @@ python stimuli/build_stimuli.py --subtlex path/to/SUBTLEX-UK.txt
 
 `controlled_length_en.json` is the matching word-length set. The long target in each pair has at least three letters more than the short one, and their Zipf values are no more than 0.6 apart. Each target is annotated as a one-word region with the layer `decoding`.
 
-The controlled sets hold constant only what they were built to hold constant. Other properties of the chosen words, such as syllable count, morphological complexity and plausibility in the frame, vary freely, and predictability is not normed. Predictability affects reading times separately from frequency (Shain, 2024), so the targets' predictability in their frames should be normed, by cloze or with a language model, before either contrast is analysed. Some words also occur in more than one item: the high-frequency targets 'garden' and 'tree' reappear in the frame of another pair, and 'building' is the long target of two pairs.
+The controlled sets hold constant only what they were built to hold constant. Other properties of the chosen words, such as syllable count, morphological complexity and plausibility in the frame, vary freely, and predictability is not normed. Predictability affects reading times separately from frequency (Shain, 2024), so the targets' predictability in their frames should be normed, by cloze or with a language model, before either contrast is analysed. Some target words also occur in other pairs' sentences, which gives them extra exposure within a session, and the build prints each case. In the current sets these are 'garden' and 'tree' in the frequency set, and 'plan' and 'building' in the length set, where 'building' is also the long target of two pairs.
 
 The frequency and length effects on fixation durations differ between readers. Both are larger in readers with weaker verbal skills (Kuperman & Van Dyke, 2011) and in dyslexic readers (Hawelka et al., 2010), and, measured within individuals, the length effect has proved more reliable across sessions than the frequency effect (Haller et al., 2026). The sets are small, so estimates for a single reader will be noisy.
 
@@ -37,7 +37,7 @@ pip install -e ".[stimuli]"
 python stimuli/build_stimuli.py
 ```
 
-The script writes all three files and records the wordfreq version in each file's `source` field. Frequency pairs whose targets miss the thresholds, and length pairs that are too close in length or too far apart in frequency, are dropped with a message. With `--subtlex`, a word missing from the export gets a Zipf value of 0 and a warning, so check those pairs by hand. The browser demo keeps a copy of `controlled_freq_en.json` in `web-demo/public/stimuli/`, and a test fails if the two differ, so copy the rebuilt file there too.
+The script writes all three files, records the frequency source and its version in each file's `source` field and cites that source. Frequency pairs whose targets miss the thresholds, and length pairs that are too close in length or too far apart in frequency, are dropped with a message. A word missing from the frequency source is written with a null Zipf value, and a pair whose target is missing is dropped. The browser demo keeps a copy of `controlled_freq_en.json` in `web-demo/public/stimuli/`, and a test fails if the two differ, so copy the rebuilt file there too.
 
 ## Adding published corpora
 

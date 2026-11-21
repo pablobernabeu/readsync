@@ -13,8 +13,9 @@ frequency norm rebuilds with the official file, which is not redistributed here:
     python stimuli/build_stimuli.py --subtlex path/to/SUBTLEX-UK.txt
 
 The file may be comma- or tab-separated and must carry a spelling column and a
-Zipf column (SUBTLEX-UK's own export does). Words absent from the file get a
-Zipf of 0.0 and a warning, so a mismatch is visible, not silent.
+Zipf column (SUBTLEX-UK's own export does). A word missing from the frequency
+source has no Zipf value: it is written as null, a pair whose target is missing
+is dropped with a message, and the SUBTLEX path also prints a warning.
 
 The script writes controlled_freq_en.json, controlled_length_en.json and
 naturalistic_en.json next to itself. stimuli/README.md describes the sets, their
@@ -38,23 +39,30 @@ from readsync.text import tokenise  # noqa: E402
 
 LANG = "en"
 
-# Set by main() to either the wordfreq lookup or a SUBTLEX-UK table.
-_lookup: Callable[[str], float] | None = None
+# Set by main() to either the wordfreq lookup or a SUBTLEX-UK table. A lookup
+# returns None for a word the source does not contain.
+_lookup: Callable[[str], float | None] | None = None
 _source_note = "Zipf values from the wordfreq package."  # main() adds the version
+_citation: list[str] = []  # set by main() for the chosen frequency source
 
 
-def _wordfreq_lookup() -> Callable[[str], float]:
+def _wordfreq_lookup() -> Callable[[str], float | None]:
     from wordfreq import zipf_frequency
 
-    return lambda word: zipf_frequency(word, LANG)
+    def lookup(word: str) -> float | None:
+        # wordfreq reports 0.0 for a word it does not know.
+        value = float(zipf_frequency(word, LANG))
+        return value if value > 0 else None
+
+    return lookup
 
 
-def _subtlex_lookup(path: Path) -> Callable[[str], float]:
+def _subtlex_lookup(path: Path) -> Callable[[str], float | None]:
     """Zipf lookup from a locally supplied SUBTLEX-UK export.
 
     Column names are matched case-insensitively: the spelling column is the one
     named ``spelling`` (or ``word``), and the Zipf column the first whose name
-    contains ``zipf``. Missing words return 0.0 with a warning.
+    contains ``zipf``. Missing words return None with a warning.
     """
     text = path.read_text(encoding="utf-8-sig", errors="replace")
     first = text.splitlines()[0]
@@ -90,11 +98,10 @@ def _subtlex_lookup(path: Path) -> Callable[[str], float]:
             except ValueError:
                 continue
 
-    def lookup(word: str) -> float:
+    def lookup(word: str) -> float | None:
         value = table.get(word)
         if value is None:
-            print(f"  warning: {word!r} not in {path.name}; Zipf set to 0.0")
-            return 0.0
+            print(f"  warning: {word!r} not in {path.name}; no Zipf value")
         return value
 
     return lookup
@@ -109,9 +116,16 @@ LOW_MAX = 3.6   # Zipf at or below this counts as low frequency
 ZIPF_MATCH = 0.6  # largest allowed Zipf gap within a length pair
 MIN_LEN_DIFF = 3  # smallest allowed letter difference within a length pair
 
-CITATION = [
+WORDFREQ_CITATION = (
     "Frequencies: Speer, R. (2022). rspeer/wordfreq: v3.0 (Version 3.0.2) "
-    "[Computer software]. Zenodo. https://doi.org/10.5281/zenodo.7199437",
+    "[Computer software]. Zenodo. https://doi.org/10.5281/zenodo.7199437"
+)
+SUBTLEX_CITATION = (
+    "Frequencies: SUBTLEX-UK (van Heuven, Mandera, Keuleers & Brysbaert, 2014), "
+    "from a locally supplied export."
+)
+CITATION = [
+    WORDFREQ_CITATION,
     "Zipf scale: van Heuven, W. J. B., Mandera, P., Keuleers, E., & Brysbaert, M. "
     "(2014). SUBTLEX-UK: A new and improved word frequency database for British "
     "English. Quarterly Journal of Experimental Psychology, 67(6), 1176-1190. "
@@ -265,17 +279,44 @@ NATURAL = [
 ]
 
 
-def zipf(token: str) -> float:
-    """Zipf frequency of a token, with surrounding punctuation stripped."""
+def zipf(token: str) -> float | None:
+    """Zipf frequency of a token, with surrounding punctuation stripped.
+
+    Returns None when the frequency source does not contain the word, so a
+    missing value is never mistaken for a very low frequency.
+    """
     if _lookup is None:
         raise RuntimeError("frequency source not initialised; run via main()")
     word = token.strip(string.punctuation).lower()
-    return round(_lookup(word), 2) if word else 0.0
+    value = _lookup(word) if word else None
+    return round(value, 2) if value is not None else None
 
 
 def word_frequencies(text: str) -> list[dict[str, object]]:
     """Per-word frequency annotation aligned with readsync tokenisation."""
     return [{"index": w.index, "text": w.text, "zipf": zipf(w.text)} for w in tokenise(text)]
+
+
+def report_reuse(items: list[dict[str, object]]) -> None:
+    """Print each target word that also appears in another pair's sentences.
+
+    A reused word is seen more than once in a session, so its reading time is
+    affected by repetition. The build reports it rather than dropping the pair.
+    """
+    def words(text: object) -> set[str]:
+        return {w.text.strip(string.punctuation).lower() for w in tokenise(str(text))}
+
+    for item in items:
+        target = item["target"]
+        assert isinstance(target, dict)
+        word = str(target["word"]).lower()
+        elsewhere = sorted(
+            str(other["id"])
+            for other in items
+            if other["pair"] != item["pair"] and word in words(other["text"])
+        )
+        if elsewhere:
+            print(f"  note: target {word!r} of {item['id']} also appears in {', '.join(elsewhere)}")
 
 
 def differing_index(hi: str, lo: str) -> int:
@@ -299,6 +340,9 @@ def build_controlled() -> dict[str, object]:
             print(f"  drop {pair['pair']}: lengths differ ({high_word}/{low_word})")
             continue
         zh, zl = zipf(high_word), zipf(low_word)
+        if zh is None or zl is None:
+            print(f"  drop {pair['pair']}: no frequency for {high_word}={zh} {low_word}={zl}")
+            continue
         if zh < HIGH_MIN or zl > LOW_MAX:
             print(f"  drop {pair['pair']}: {high_word}={zh} {low_word}={zl} miss thresholds")
             continue
@@ -317,12 +361,13 @@ def build_controlled() -> dict[str, object]:
                 "words": word_frequencies(text),
             })
     print(f"  kept {len(items) // 2} pairs ({len(items)} items)")
+    report_reuse(items)
     return {
         "name": "Controlled word-frequency reading set (English)",
         "language": LANG,
         "license": "CC-BY-4.0",
         "source": f"Constructed for readsync. Target and per-word frequencies are {_source_note}",
-        "citation": CITATION,
+        "citation": _citation,
         "design": "Matched frame pairs. Each pair is one sentence that differs only in "
                   "the target word, and the high and low targets have the same length, "
                   "so frequency is the property deliberately varied. Other lexical "
@@ -344,6 +389,9 @@ def build_length() -> dict[str, object]:
                   f"({short_word}/{long_word})")
             continue
         zs, zl = zipf(short_word), zipf(long_word)
+        if zs is None or zl is None:
+            print(f"  drop {pair['pair']}: no frequency for {short_word}={zs} {long_word}={zl}")
+            continue
         if abs(zs - zl) > ZIPF_MATCH:
             print(f"  drop {pair['pair']}: zipf gap {abs(zs - zl):.2f} > {ZIPF_MATCH} "
                   f"({short_word}={zs}/{long_word}={zl})")
@@ -363,12 +411,13 @@ def build_length() -> dict[str, object]:
                 "words": word_frequencies(text),
             })
     print(f"  kept {len(items) // 2} pairs ({len(items)} items)")
+    report_reuse(items)
     return {
         "name": "Controlled word-length reading set (English)",
         "language": LANG,
         "license": "CC-BY-4.0",
         "source": f"Constructed for readsync. Target and per-word frequencies are {_source_note}",
-        "citation": CITATION,
+        "citation": _citation,
         "design": "Matched frame pairs. Each pair is one sentence that differs only in "
                   "the target word, which is short in one member and long in the other, "
                   f"with Zipf values no more than {ZIPF_MATCH} apart, so word length is the "
@@ -394,7 +443,7 @@ def build_naturalistic() -> dict[str, object]:
         "language": LANG,
         "license": "CC-BY-4.0",
         "source": f"Constructed for readsync. Per-word frequencies are {_source_note}",
-        "citation": CITATION,
+        "citation": _citation,
         "design": "Short, neutral passages of connected prose for practice and for "
                   "global reading measures, each with a yes/no comprehension question. "
                   "No lexical property is controlled.",
@@ -427,6 +476,8 @@ def main() -> None:
         from importlib.metadata import version
 
         _source_note = f"Zipf values from the wordfreq package (version {version('wordfreq')})."
+    global _citation
+    _citation = [SUBTLEX_CITATION if args.subtlex else WORDFREQ_CITATION, *CITATION[1:]]
     source = f"SUBTLEX-UK ({args.subtlex.name})" if args.subtlex else "wordfreq"
     print(f"frequency source: {source}")
     print("frequency set:")

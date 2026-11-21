@@ -273,7 +273,7 @@ def load_stimulus_set(path: str | Path) -> StimulusSet:
         word_zipf = {
             int(w["index"]): float(w["zipf"])
             for w in item.get("words", [])
-            if "index" in w and "zipf" in w
+            if "index" in w and w.get("zipf") is not None
         }
         properties = {k: v for k, v in target.items() if k != "word_index"}
         if "pair" in item:
