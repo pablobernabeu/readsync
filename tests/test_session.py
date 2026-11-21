@@ -345,4 +345,32 @@ def test_a_crashed_session_is_closed_as_aborted(tmp_path: Path) -> None:
     )
     with pytest.raises(RuntimeError, match="display lost"):
         session.run([Passage(id="p1", text="a b c")])
-    assert log.events()[-1]["status"] == "aborted"
+    end = log.events()[-1]
+    assert (end["status"], end["error"]) == ("aborted", "RuntimeError")
+
+
+def test_session_start_names_the_session_and_its_plan(tmp_path: Path) -> None:
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p",
+        tracker=NullTracker(),
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=log,
+    )
+    result = session.run([Passage(id="p1", text="a"), Passage(id="p2", text="b")])
+    start = log.events()[0]
+    assert start["planned"] == ["p1", "p2"]
+    assert start["session"] == result.session_id == log.events()[-1]["session"]
+    assert result.log_head == log.head
+
+
+def test_a_log_that_already_holds_a_session_is_refused(tmp_path: Path) -> None:
+    import pytest
+
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    log.append({"type": "note"})
+    session = ReadingSession(
+        participant="p", tracker=NullTracker(), presenter=HeadlessPresenter(), log=log
+    )
+    with pytest.raises(ValueError, match="own log file"):
+        session.run([Passage(id="p1", text="a")])

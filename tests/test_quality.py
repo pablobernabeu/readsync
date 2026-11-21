@@ -131,3 +131,17 @@ def test_invalid_count_sums_raw_counts_not_rounded_proportions() -> None:
 def test_expected_rate_must_be_positive() -> None:
     with pytest.raises(ValueError, match="positive"):
         session_quality([], expected_rate_hz=0)
+
+
+def test_report_carries_the_session_status_and_plan() -> None:
+    events = [
+        {"type": "session_start", "participant": "p", "session": "s1", "planned": ["a", "b"]},
+        {"type": "passage_onset", "t": 0.0, "passage": "a"},
+        {"type": "passage_offset", "t": 1.0, "passage": "a"},
+        {"type": "session_end", "participant": "p", "session": "s1", "status": "aborted"},
+    ]
+    report = session_quality(events)
+    assert (report.session, report.status, report.n_planned, report.n_passages) == (
+        "s1", "aborted", 2, 1,
+    )
+    assert session_quality(events[:-1]).status is None

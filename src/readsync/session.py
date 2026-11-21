@@ -1,22 +1,22 @@
-"""Orchestration of an offline reading session.
+"""Running a reading session.
 
-``ReadingSession`` ties the pieces together: it presents passages, polls the
+``ReadingSession`` ties the pieces together. It presents passages, polls the
 tracker for gaze, sends markers at word, region and passage boundaries, asks the
-comprehension questions and writes everything to the encrypted event log. The
-whole run happens inside a ``NetworkGuard`` so that no data leave the machine
-while a participant is being recorded.
+comprehension questions and writes everything to the encrypted event log. By
+default the run happens inside a ``NetworkGuard``, which blocks outbound
+connections from Python code while a participant is recorded (see SECURITY.md
+for what it does not cover).
 
-Presentation is real-time and behind a ``Presenter`` protocol. Each frame, the
-session calls ``presenter.tick``, which draws the current passage, returns the
-session clock time and reports whether the reader has asked to move on.
-``PsychoPyPresenter`` (see ``readsync.presenters``) runs sessions on a real
-screen; ``HeadlessPresenter`` advances a virtual clock with no display, which is
-what lets the session be tested without PsychoPy or a screen.
+Presentation sits behind a ``Presenter`` protocol. On each frame the session
+calls ``presenter.tick``, which draws the current passage, returns the session
+time and reports whether the reader has asked to move on. ``PsychoPyPresenter``
+(see ``readsync.presenters``) runs sessions on a screen, and ``HeadlessPresenter``
+advances a virtual clock with no display, which lets the session be tested
+without PsychoPy.
 
-Every event in the log is stamped on the presenter's session clock, so within
-one log ``t`` has a single time base. Gaze events additionally carry the
-tracker's own timestamp as ``tracker_t`` for cross-checking against the
-tracker's data file, which keeps its own clock through the marker messages.
+Events are stamped with ``t`` on the presenter's session clock, so one log has a
+single time base. Gaze events also carry the sample's time on the tracker's own
+clock as ``tracker_t``, for cross-checking against the tracker's data file.
 
 Each passage is one tracker trial. Recording starts at the passage and stops at
 its end, and the drift check runs before recording starts, while the tracker is
@@ -34,6 +34,7 @@ without them.
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
@@ -154,12 +155,19 @@ class HeadlessPresenter:
 
 @dataclass(frozen=True)
 class SessionResult:
-    """Summary of a completed session."""
+    """Summary of a completed session.
+
+    ``log_head`` is the number of records in the log and the chain hash of the
+    last one. Storing it apart from the log lets a later reader confirm that the
+    log is complete and unaltered.
+    """
 
     participant: str
+    session_id: str
     n_passages: int
     n_events: int
     log_path: str
+    log_head: tuple[int, str]
 
 
 class ReadingSession:
@@ -345,12 +353,19 @@ class ReadingSession:
             self._run_passage(passage, item.regions, areas)
         finally:
             self.tracker.stop_recording()
+            self.log.sync()
         self._ask_questions(item)
         end_trial = getattr(self.tracker, "end_trial", None)
         if end_trial is not None:
             end_trial({"passage": passage.id, "condition": item.condition})
 
     def _run(self, items: list[StimulusItem]) -> SessionResult:
+        if len(self.log):
+            raise ValueError(
+                f"the log at {self.log.path} already holds {len(self.log)} records; "
+                "give each session its own log file"
+            )
+        session_id = uuid.uuid4().hex
         self.tracker.connect()
         self.tracker.calibrate()
         calibration = getattr(self.tracker, "last_calibration_message", None)
@@ -360,29 +375,42 @@ class ReadingSession:
                 {"type": "calibration", "t": self._now(), "detail": self._last_calibration}
             )
         self.log.append(
-            {"type": "session_start", "t": self._now(), "participant": self.participant}
+            {
+                "type": "session_start",
+                "t": self._now(),
+                "participant": self.participant,
+                "session": session_id,
+                "planned": [item.passage.id for item in items],
+            }
         )
-        status = "aborted"
+        end: dict[str, object] = {"status": "aborted"}
         try:
             for item in items:
                 self._run_item(item)
-            status = "completed"
+            end = {"status": "completed"}
+        except BaseException as exc:
+            end["error"] = type(exc).__name__
+            raise
         finally:
             self.log.append(
                 {
                     "type": "session_end",
                     "t": self._now(),
                     "participant": self.participant,
-                    "status": status,
+                    "session": session_id,
+                    **end,
                 }
             )
+            self.log.sync()
             self.tracker.close()
             self.presenter.close()
         return SessionResult(
             participant=self.participant,
+            session_id=session_id,
             n_passages=len(items),
             n_events=len(self.log),
             log_path=str(self.log.path),
+            log_head=self.log.head,
         )
 
     def run(self, passages: list[Passage]) -> SessionResult:

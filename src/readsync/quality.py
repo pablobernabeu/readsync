@@ -51,13 +51,22 @@ class PassageQuality:
 class QualityReport:
     """Quality figures for a whole session.
 
-    ``observed_rate_hz`` is the polled sample rate over the recorded passages.
-    ``sample_loss`` compares it with ``expected_rate_hz`` where one was given.
-    ``calibration`` and ``drift_errors`` collect the logged tracker checks, and
-    ``n_responses``/``n_correct`` summarise the comprehension record.
+    ``status`` is the closing ``session_end`` status, ``completed`` or
+    ``aborted``, or ``None`` when the log has no closing event, as after a crash
+    that left the log cut short. ``n_planned`` is the number of passages the
+    session set out to present. ``observed_rate_hz`` is the polled sample rate
+    over the recorded passages, and ``sample_loss`` compares it with
+    ``expected_rate_hz`` where one was given. Because the session polls once per
+    display frame, this measures the polled stream, while the tracker's data
+    file holds the full-rate record. ``calibration`` and ``drift_errors``
+    collect the logged tracker checks, and ``n_responses``/``n_correct``
+    summarise the comprehension record.
     """
 
     participant: str | None
+    session: str | None
+    status: str | None
+    n_planned: int | None
     n_passages: int
     n_samples: int
     invalid_proportion: float
@@ -106,6 +115,9 @@ def session_quality(
     if expected_rate_hz is not None and expected_rate_hz <= 0:
         raise ValueError("expected_rate_hz must be positive when given")
     participant: str | None = None
+    session: str | None = None
+    status: str | None = None
+    n_planned: int | None = None
     calibration: list[str] = []
     drift_errors: list[float | None] = []
     n_responses = 0
@@ -117,6 +129,11 @@ def session_quality(
         kind = event.get("type")
         if kind == "session_start":
             participant = str(event.get("participant"))
+            session = event.get("session")
+            planned = event.get("planned")
+            n_planned = len(planned) if isinstance(planned, list) else None
+        elif kind == "session_end":
+            status = event.get("status")
         elif kind == "calibration":
             calibration.append(str(event.get("detail")))
         elif kind == "drift_check":
@@ -149,6 +166,9 @@ def session_quality(
         loss = max(0.0, 1.0 - observed / expected_rate_hz)
     return QualityReport(
         participant=participant,
+        session=session,
+        status=status,
+        n_planned=n_planned,
         n_passages=len(passages),
         n_samples=n_samples,
         invalid_proportion=round(invalid / n_samples, 4) if n_samples else 0.0,
@@ -177,7 +197,7 @@ def log_quality(
 ) -> QualityReport:
     """Decrypt and verify ``log``, then compute its quality report.
 
-    Raises :class:`readsync.storage.IntegrityError` if the log fails its chain
-    check, as :func:`readsync.export.log_to_csv` does.
+    Raises the same errors as :func:`readsync.export.log_to_csv` if the log
+    fails verification.
     """
     return session_quality(log.events(), expected_rate_hz=expected_rate_hz)
