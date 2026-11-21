@@ -100,6 +100,9 @@ class PsychoPyPresenter:
             color=self.background,
             monitor=self.monitor,
             allowGUI=not self.fullscreen,
+            # On high-density (Retina) displays, a pixel then stays one screen
+            # pixel, so the window's size matches the requested size.
+            useRetina=False,
         )
         actual = tuple(int(round(v)) for v in self._win.size)
         if actual != tuple(self.size):
@@ -152,34 +155,51 @@ class PsychoPyPresenter:
         if self._win is not None:
             self._win.flip()
 
+    def describe(self) -> dict[str, object]:
+        """The settings the session records with its start."""
+        return {
+            "presenter": "psychopy",
+            "size": list(self.size),
+            "fullscreen": self.fullscreen,
+            "font": self.font,
+            "letter_height": self.letter_height,
+        }
+
     def _letter_height(self, line_height: float) -> float:
         return self.letter_height if self.letter_height is not None else 0.7 * line_height
 
     def check_layout(self, layout: FixedWidthLayout, *, tolerance: float = 0.05) -> float:
         """Measure the drawn character width and compare it with the layout.
 
-        Renders a run of characters in the presenter's font at its letter height
-        and returns the measured width of one character in pixels. Raises
-        ``ValueError`` when that width differs from ``layout.char_width`` by more
-        than ``tolerance`` as a fraction, because the words would then not fill
-        their interest areas. Call it once per display before a session.
+        Renders runs of a narrow and a wide letter in the presenter's font at its
+        letter height and returns the mean width of one character in pixels.
+        Raises ``ValueError`` when either width differs from ``layout.char_width``
+        by more than ``tolerance`` as a fraction, because the words would then not
+        fill their interest areas, or the font is not monospaced. Call it once
+        per display before a session.
         """
         self._ensure_window()
-        sample = "x" * 40
-        stim = self._visual.TextStim(
-            self._win,
-            text=sample,
-            font=self.font,
-            height=self._letter_height(layout.line_height),
-        )
-        width = float(stim.boundingBox[0]) / len(sample)
-        if abs(width - layout.char_width) > tolerance * layout.char_width:
-            raise ValueError(
-                f"{self.font} at this letter height is {width:.1f} px per character, "
-                f"but the layout assumes {layout.char_width} px. Adjust letter_height "
-                "or the layout's char_width."
+        widths = []
+        # A narrow and a wide letter: in a proportional font, or a fallback font
+        # substituted for a missing one, their widths differ.
+        for letter in ("i", "M"):
+            sample = letter * 40
+            stim = self._visual.TextStim(
+                self._win,
+                text=sample,
+                font=self.font,
+                height=self._letter_height(layout.line_height),
             )
-        return width
+            widths.append(float(stim.boundingBox[0]) / len(sample))
+        for width in widths:
+            if abs(width - layout.char_width) > tolerance * layout.char_width:
+                raise ValueError(
+                    f"{self.font} at this letter height draws characters "
+                    f"{min(widths):.1f} to {max(widths):.1f} px wide, but the layout "
+                    f"assumes {layout.char_width} px. Use a monospaced font, or adjust "
+                    "letter_height or the layout's char_width."
+                )
+        return sum(widths) / len(widths)
 
     @property
     def window(self) -> Any:
@@ -235,6 +255,7 @@ class PsychoPyPresenter:
         time, with no wait for the next frame. Both are on the same session clock
         as the reading record.
         """
+        self._ensure_window()
         stim = self._text_screen(
             f"{question.text}\n\nY = yes        N = no", on_flip=self._keyboard.clock.reset
         )

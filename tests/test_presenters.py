@@ -75,5 +75,24 @@ def test_check_layout_compares_the_drawn_width_with_the_layout(
     assert presenter.check_layout(FixedWidthLayout(char_width=17, line_height=40)) == (
         pytest.approx(16.8)
     )
-    with pytest.raises(ValueError, match="px per character"):
+    with pytest.raises(ValueError, match="layout assumes 12 px"):
         presenter.check_layout(FixedWidthLayout(char_width=12, line_height=40))
+
+
+def test_check_layout_detects_a_proportional_font(monkeypatch: pytest.MonkeyPatch) -> None:
+    from readsync.text import FixedWidthLayout
+    from tests import _fake_psychopy
+
+    class _Proportional(_fake_psychopy.TextStim):
+        def __init__(self, win: object, *, text: str, height: float = 20.0, **kw: object) -> None:
+            super().__init__(win, text=text, height=height, **kw)  # type: ignore[arg-type]
+            scale = 0.4 if text.startswith("i") else 0.8
+            self.boundingBox = (len(text) * height * scale, height)
+
+    _fake_psychopy.install(monkeypatch)
+    import sys
+
+    monkeypatch.setattr(sys.modules["psychopy.visual"], "TextStim", _Proportional)
+    presenter = PsychoPyPresenter(size=(800, 600), fullscreen=False)
+    with pytest.raises(ValueError, match="monospaced"):
+        presenter.check_layout(FixedWidthLayout(char_width=17, line_height=40))
