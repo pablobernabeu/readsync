@@ -42,7 +42,7 @@ eyelink = []
 webcam = ["mediapipe>=0.10,<0.11"]
 # Building the stimulus sets with frequency annotation. Build-time only; the JSON
 # files ship with the frequencies baked in, so running a session needs none of it.
-stimuli = ["wordfreq>=3"]
+stimuli = ["wordfreq>=3.1.1,<4"]
 # Lab-Streaming-Layer marker transport for EEG co-registration.
 lsl = ["pylsl>=1.16"]
 dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10"]

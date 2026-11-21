@@ -4,7 +4,7 @@ Run this once to regenerate the JSON stimulus files. Every frequency is a Zipf
 value, so the numbers are real and the build is reproducible, never
 hand-entered.
 
-    pip install wordfreq
+    pip install -e ".[stimuli]"
     python stimuli/build_stimuli.py
 
 By default the Zipf values come from the wordfreq package, which is
@@ -21,14 +21,12 @@ Zipf of 0.0 and a warning, so a mismatch is visible, not silent.
 Three sets are written next to this script:
 
 * ``controlled_freq_en.json`` is the controlled word-frequency reading set. Each
-  pair is a matched frame sentence that is identical except for one target word,
-  and the two target words have the same length, so lexical frequency is the only
-  manipulated property. The frequency effect on fixation and gaze durations is a
-  standard word-level signature, and its size separates fluent, second-language
-  and dyslexic readers, which is what this set is for.
+  pair is a frame sentence that is identical except for one target word, and the
+  two target words have the same length, so frequency is the property
+  deliberately varied.
 * ``controlled_length_en.json`` is the matching word-length set: short against
-  long target words at matched frequency, so word length is the only manipulated
-  property.
+  long target words matched in frequency within a tolerance, so word length is
+  the property deliberately varied.
 * ``naturalistic_en.json`` is a small set of neutral connected-prose passages for
   practice and for global reading measures, each with a comprehension question.
 
@@ -56,7 +54,7 @@ LANG = "en"
 
 # Set by main() to either the wordfreq lookup or a SUBTLEX-UK table.
 _lookup: Callable[[str], float] | None = None
-_source_note = "Zipf values from the wordfreq package."
+_source_note = "Zipf values from the wordfreq package."  # main() adds the version
 
 
 def _wordfreq_lookup() -> Callable[[str], float]:
@@ -114,20 +112,20 @@ def _subtlex_lookup(path: Path) -> Callable[[str], float]:
         return value
 
     return lookup
-# The Zipf scale runs from about 1 to 7, where values up to roughly 3 are low
-# frequency and values of about 4 and above are high frequency (van Heuven et al.,
-# 2014). These thresholds straddle that boundary with a gap, so each kept pair is
-# an unambiguous high-versus-low contrast.
+# Zipf values use the logarithmic scale of van Heuven et al. (2014). A high target
+# must reach HIGH_MIN and a low target must not exceed LOW_MAX, so the targets of
+# every kept pair differ by at least HIGH_MIN - LOW_MAX. Pairs that fail either
+# bound under the chosen frequency source are dropped with a message.
 HIGH_MIN = 4.5  # Zipf at or above this counts as high frequency
 LOW_MAX = 3.6   # Zipf at or below this counts as low frequency
 # For the length set: the short and long targets must be close in frequency and
-# clearly different in length, so word length is the only manipulated property.
+# clearly different in length.
 ZIPF_MATCH = 0.6  # largest allowed Zipf gap within a length pair
 MIN_LEN_DIFF = 3  # smallest allowed letter difference within a length pair
 
 CITATION = [
-    "Frequencies: Speer, R. (2022). wordfreq (v3.0.2). Zenodo. "
-    "https://doi.org/10.5281/zenodo.7199437",
+    "Frequencies: Speer, R. (2022). rspeer/wordfreq: v3.0 (Version 3.0.2) "
+    "[Computer software]. Zenodo. https://doi.org/10.5281/zenodo.7199437",
     "Zipf scale: van Heuven, W. J. B., Mandera, P., Keuleers, E., & Brysbaert, M. "
     "(2014). SUBTLEX-UK: A new and improved word frequency database for British "
     "English. Quarterly Journal of Experimental Psychology, 67(6), 1176-1190. "
@@ -195,7 +193,7 @@ PAIRS = [
 
 # Matched frame pairs for the word-length manipulation. Each frame is identical
 # except for the target word, which is short in one and long in the other while
-# their frequencies stay close, so word length is the only manipulated property.
+# their frequencies stay close, so word length is the property deliberately varied.
 LENGTH_PAIRS = [
     {"pair": "L01",
      "short": "He wanted a good job after leaving the school.",
@@ -340,9 +338,11 @@ def build_controlled() -> dict[str, object]:
         "source": f"Constructed for readsync. Target and per-word frequencies are {_source_note}",
         "citation": CITATION,
         "design": "Matched frame pairs. Each pair is one sentence that differs only in "
-                  "the target word, and the high and low target words have the same "
-                  "length, so lexical frequency is the only manipulated property. "
-                  "Predictability is not normed and would need cloze data before analysis.",
+                  "the target word, and the high and low targets have the same length, "
+                  "so frequency is the property deliberately varied. Other lexical "
+                  "properties of the chosen words covary with frequency, and "
+                  "predictability is not normed, so cloze or language-model norms are "
+                  "needed before analysis.",
         "items": items,
     }
 
@@ -384,9 +384,10 @@ def build_length() -> dict[str, object]:
         "source": f"Constructed for readsync. Target and per-word frequencies are {_source_note}",
         "citation": CITATION,
         "design": "Matched frame pairs. Each pair is one sentence that differs only in "
-                  "the target word, which is short in one member and long in the other "
-                  "while the two are matched in frequency, so word length is the only "
-                  "manipulated property.",
+                  "the target word, which is short in one member and long in the other, "
+                  f"with Zipf values no more than {ZIPF_MATCH} apart, so word length is the "
+                  "property deliberately varied. Syllable count and morphological "
+                  "complexity covary with length, and predictability is not normed.",
         "items": items,
     }
 
@@ -408,9 +409,9 @@ def build_naturalistic() -> dict[str, object]:
         "license": "CC-BY-4.0",
         "source": f"Constructed for readsync. Per-word frequencies are {_source_note}",
         "citation": CITATION,
-        "design": "Short, neutral connected-prose passages for practice and for global "
-                  "reading measures, each with a yes/no comprehension question. Not a "
-                  "controlled corpus.",
+        "design": "Short, neutral passages of connected prose for practice and for "
+                  "global reading measures, each with a yes/no comprehension question. "
+                  "No lexical property is controlled.",
         "items": items,
     }
 
@@ -436,6 +437,10 @@ def main() -> None:
     _lookup = _subtlex_lookup(args.subtlex) if args.subtlex else _wordfreq_lookup()
     if args.subtlex:
         _source_note = f"Zipf values from a local SUBTLEX-UK export ({args.subtlex.name})."
+    else:
+        from importlib.metadata import version
+
+        _source_note = f"Zipf values from the wordfreq package (version {version('wordfreq')})."
     source = f"SUBTLEX-UK ({args.subtlex.name})" if args.subtlex else "wordfreq"
     print(f"frequency source: {source}")
     print("frequency set:")

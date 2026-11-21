@@ -2,14 +2,14 @@
   "name": "Controlled word-length reading set (English)",
   "language": "en",
   "license": "CC-BY-4.0",
-  "source": "Constructed for readsync. Target and per-word frequencies are Zipf values from the wordfreq package.",
+  "source": "Constructed for readsync. Target and per-word frequencies are Zipf values from the wordfreq package (version 3.1.1).",
   "citation": [
-    "Frequencies: Speer, R. (2022). wordfreq (v3.0.2). Zenodo. https://doi.org/10.5281/zenodo.7199437",
+    "Frequencies: Speer, R. (2022). rspeer/wordfreq: v3.0 (Version 3.0.2) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.7199437",
     "Zipf scale: van Heuven, W. J. B., Mandera, P., Keuleers, E., & Brysbaert, M. (2014). SUBTLEX-UK: A new and improved word frequency database for British English. Quarterly Journal of Experimental Psychology, 67(6), 1176-1190. https://doi.org/10.1080/17470218.2013.850521",
     "Frequency and length effects in reading: Rayner, K. (1998). Eye movements in reading and information processing: 20 years of research. Psychological Bulletin, 124(3), 372-422. https://doi.org/10.1037/0033-2909.124.3.372",
     "Frequency effect, updated review: Brysbaert, M., Mandera, P., & Keuleers, E. (2018). The word frequency effect in word processing: An updated review. Current Directions in Psychological Science, 27(1), 45-50. https://doi.org/10.1177/0963721417727521"
   ],
-  "design": "Matched frame pairs. Each pair is one sentence that differs only in the target word, which is short in one member and long in the other while the two are matched in frequency, so word length is the only manipulated property.",
+  "design": "Matched frame pairs. Each pair is one sentence that differs only in the target word, which is short in one member and long in the other, with Zipf values no more than 0.6 apart, so word length is the property deliberately varied. Syllable count and morphological complexity covary with length, and predictability is not normed.",
   "items": [
     {
       "id": "L01s",
