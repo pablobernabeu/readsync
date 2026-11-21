@@ -16,15 +16,15 @@ beyond the calibrated range, and during blinks the last gaze position is held.
 All events share one session clock, including across recalibrations, and each
 calibration is logged with its cross-validated error.
 
-Webcam gaze is coarse and noisy, so sit with the screen well lit, keep your head
-reasonably still and recalibrate when prompted.
+Webcam gaze is coarse and noisy, so sit facing a light so that your face is evenly
+lit, keep your head reasonably still and recalibrate when prompted.
 
 Requirements:
 
     pip install -e ".[webcam]"       # from the repository root: OpenCV and MediaPipe
 
-The MediaPipe FaceLandmarker model file is needed once. If it is missing, the
-script prints where to download it.
+The MediaPipe FaceLandmarker model file has to be downloaded once. If it is
+missing, the script prints where to get it.
 
 Controls:
     During calibration, look at each dot until it moves on.
@@ -66,8 +66,8 @@ BACKGROUND = 30
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 # A three by three grid of calibration targets, as fractions of the screen. The
-# grid is shown once per head pose; calibrating at more than one pose gives the
-# head-aware model the pose variation it needs to compensate, and pools enough
+# grid is shown once per head pose. Calibrating at more than one pose gives the
+# head-aware model the pose variation it needs to compensate and pools enough
 # points for cross-validation.
 _AXIS = (0.1, 0.5, 0.9)
 CALIB_TARGETS = [(x, y) for y in _AXIS for x in _AXIS]
@@ -105,7 +105,7 @@ def _read_rgb(cap: cv2.VideoCapture) -> tuple[np.ndarray | None, np.ndarray | No
 
 
 def _usable(signals: GazeSignals | None) -> bool:
-    """True if a frame's signals are present, eyes open, and the feature sane."""
+    """True if a frame's signals are present, the eyes open and the feature plausible."""
     if signals is None or signals.openness < BLINK_OPENNESS:
         return False
     return FX_RANGE[0] <= signals.fx <= FX_RANGE[1] and FY_RANGE[0] <= signals.fy <= FY_RANGE[1]

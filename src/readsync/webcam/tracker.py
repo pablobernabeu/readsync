@@ -381,9 +381,9 @@ def head_pose_from_matrix(matrix: Any) -> tuple[float, float, float]:
 
     Reads the rotation block of the FaceLandmarker facial transformation matrix and
     decomposes it as intrinsic z-y-x angles. The exact convention matters only for
-    naming; the three angles serve as monotone head-orientation inputs and to
-    measure how far the head leaves the calibrated range. A near-degenerate matrix falls back to
-    a zero roll rather than raising.
+    naming. The three angles serve as monotone head-orientation inputs and measure
+    how far the head leaves the calibrated range. A near-degenerate matrix falls
+    back to a zero roll instead of raising.
     """
     r = [[float(matrix[i][j]) for j in range(3)] for i in range(3)]
     sy = math.sqrt(r[0][0] * r[0][0] + r[1][0] * r[1][0])
@@ -413,7 +413,7 @@ class MediaPipeIrisEstimator:
     Confidence is 0 during a blink, when the openness falls below
     ``blink_openness``, and when the head is more than ``max_pose_drift_deg``
     outside the range seen at calibration, as reported by a model that offers
-    ``pose_drift_degrees``. Otherwise it is 1. The openness is computed from
+    ``pose_drift_degrees``. Otherwise, it is 1. The openness is computed from
     landmark coordinates normalised by the frame's width and height, so the same
     threshold corresponds to different eye closures on cameras with different
     aspect ratios. The vertical iris feature is divided by the lid gap, so a
@@ -495,8 +495,9 @@ class MediaPipeIrisEstimator:
         stays on one point, because the eyes then turn within the head. The
         landmark x and y are fractions of the frame's width and height, so on a
         non-square frame these lengths and directions are distorted by the
-        aspect ratio. A small floor on each span avoids a divide by zero when the
-        eye is closed.
+        aspect ratio. A span of exactly zero is replaced with 1e-6 to avoid
+        dividing by zero, and implausible features from a nearly closed eye are
+        left for the caller to reject.
         """
         iris, corner_a, corner_b, upper, lower = spec
         ax, ay = landmarks[corner_a].x, landmarks[corner_a].y
@@ -519,7 +520,7 @@ class MediaPipeIrisEstimator:
 
     @staticmethod
     def _eye_openness(landmarks: Any, spec: tuple[int, int, int, int, int]) -> float:
-        """Eye-aspect ratio (lid gap over eye width). Falls to zero during a blink."""
+        """Eye-aspect ratio (lid gap over eye width), which falls towards zero in a blink."""
         _, corner_a, corner_b, upper, lower = spec
         width = (
             math.hypot(

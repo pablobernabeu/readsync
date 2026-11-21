@@ -24,7 +24,7 @@ const EMA_ALPHA = 0.35;
 const DRIFT_LIMIT_DEG = 12;
 const MAX_CV_ERROR = 0.06; // flag a calibration whose cross-validated error exceeds 6% of the screen
 const RIDGE = 1e-3;
-const FACE_LOST_FRAMES = 45; // consecutive detections without a usable signal
+const FACE_LOST_FRAMES = 45; // consecutive detections without a usable signal before a hint
 const RESIZE_TOLERANCE = 0.03; // fraction the window may change size before gaze is untrusted
 const CALIB_HINT = "Follow the dot with your eyes.";
 
@@ -130,11 +130,11 @@ function usable(signal) {
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 // Resolve when a button is clicked or its shortcut key is pressed, whichever
-// comes first. Clicking is the primary path; the keys stay as an optional
+// comes first. Clicking is the primary path, and the keys are an optional
 // shortcut. Each option is { el, value, keys }, where keys are lowercase and
 // " " is the space bar. Key events are ignored while one of the option buttons
 // itself has focus, so that pressing Space on a focused button activates that
-// button natively instead of being hijacked by the window-level shortcut.
+// button rather than the window-level shortcut.
 // Every listener is removed before resolving, so screens never stack them.
 function waitAction(options) {
   return new Promise((resolve) => {
@@ -256,7 +256,7 @@ async function runCalibration() {
   $("reading-controls").hidden = true;
   // Targets are drawn at fractions of the live window, so every pose must be
   // collected at one window size. A resize beyond tolerance mid-calibration
-  // restarts the collection at the new size; the snapshot returned here is the
+  // restarts the collection at the new size. The snapshot returned here is the
   // one the reading-phase guard measures against.
   for (;;) {
     const viewport = viewportNow();

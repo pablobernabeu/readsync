@@ -26,8 +26,9 @@ __all__ = [
 _UNSAFE = re.compile(r"[\s=]+")
 
 # EyeLink data-file messages have a maximum length. pylink's documentation gives
-# 130 characters and PsychoPy's SR Research plugin 128, so markers are capped at
-# the lower figure, which makes any truncation explicit and the same everywhere.
+# 130 characters and PsychoPy's SR Research plugin 128, so markers are cut at the
+# lower figure. A longer message loses its tail silently, at the same point on
+# every backend, while the session log keeps the full marker.
 EYELINK_MESSAGE_LIMIT = 128
 
 # Marker fields that identify the event, written before the others.
@@ -41,8 +42,8 @@ def _token(value: Any) -> str:
 
 @dataclass(frozen=True)
 class Marker:
-    """A labelled event. ``t`` is seconds from session start; ``meta`` carries
-    structured detail such as the passage id, the word index, or the region id
+    """A labelled event. ``t`` is seconds from session start, and ``meta`` carries
+    structured detail such as the passage id, the word index or the region id
     and its layer."""
 
     label: str

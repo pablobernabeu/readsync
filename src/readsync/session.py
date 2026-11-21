@@ -3,11 +3,11 @@
 ``ReadingSession`` ties the pieces together. It presents passages, polls the
 tracker for gaze, sends markers at word, region and passage boundaries, asks the
 comprehension questions and writes everything to the encrypted event log. By
-default the run happens inside a ``NetworkGuard``, which blocks outbound
+default, the run happens inside a ``NetworkGuard``, which blocks outbound
 connections from Python code while a participant is recorded (see SECURITY.md
 for what it does not cover).
 
-Presentation sits behind a ``Presenter`` protocol. On each frame the session
+Presentation sits behind a ``Presenter`` protocol. On each frame, the session
 calls ``presenter.tick``, which draws the current passage, returns the session
 time and reports whether the reader has asked to move on. ``PsychoPyPresenter``
 (see ``readsync.presenters``) runs sessions on a screen, and ``HeadlessPresenter``

@@ -77,8 +77,8 @@ class StimulusItem:
     frequency where annotated. ``regions`` lists the annotated multi-word spans,
     each typed by the layer of reading it loads, and ``questions`` the
     comprehension checks tied to them. ``question_position`` is ``"after"`` by
-    default; ``"before"`` also shows the question text before the passage, as
-    in the information-seeking condition of the OneStop corpus. ``question`` and
+    default. With ``"before"``, the question text is also shown before the
+    passage, as in the information-seeking condition of the OneStop corpus. ``question`` and
     ``answer`` mirror the first question, for code that expects a single one.
     """
 

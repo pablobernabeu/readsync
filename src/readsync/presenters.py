@@ -7,8 +7,9 @@ reader advances with a keypress.
 PsychoPy is large and platform-sensitive, so it is an optional dependency
 (``pip install "readsync[present]"``) imported only when a window is opened.
 This module therefore imports without PsychoPy or a display. The drawing code
-needs a screen, so it runs in the example script, and the tests cover the
-coordinate conversion.
+needs a screen, so it runs only in the example script. The tests use a
+stand-in for PsychoPy to cover the coordinate conversion, the window-size check,
+the question screen and ``check_layout``.
 
 PsychoPy pixel coordinates have their origin at the centre of
 the window with the y axis pointing up, whereas interest areas use a top-left

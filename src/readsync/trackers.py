@@ -36,8 +36,8 @@ _MISSING_DATA = -32768.0
 @dataclass(frozen=True)
 class GazeSample:
     """One gaze estimate. ``t`` is the time in seconds on the tracker's own clock,
-    or the session time for a tracker without one; ``x``/``y`` are pixels;
-    ``valid`` is false during blinks or track loss."""
+    or the session time for a tracker without one. ``x`` and ``y`` are pixels,
+    and ``valid`` is false during blinks or track loss."""
 
     t: float
     x: float
@@ -151,8 +151,8 @@ class EyeLinkTracker:
     pylink is imported lazily in :meth:`connect`, so importing this module never
     requires the SDK. The Host PC is reached over a dedicated Ethernet link at
     ``address`` through pylink's own transport rather than through Python sockets,
-    so an active ``NetworkGuard`` does not block it. That link carries local
-    hardware traffic, not internet traffic.
+    so an active ``NetworkGuard`` does not block it. That link carries only local
+    hardware traffic.
 
     The session runs each passage as one trial. :meth:`begin_trial` writes the
     passage's interest-area set beside the local copy of the EDF file, named
@@ -297,10 +297,10 @@ class EyeLinkTracker:
         The result is a check: ``applyDriftCorrect`` is not called, so the
         calibration is left unchanged. ``doDriftCorrect`` returns a non-zero
         status when the check was aborted or escalated to a full recalibration,
-        in which case no error value applies and ``None`` is returned. Otherwise
-        the first number in the Host PC's calibration message is returned as
-        the error; the message format, and the unit of that number, still have
-        to be confirmed against the device.
+        in which case no error value applies and ``None`` is returned.
+        Otherwise, the first number in the Host PC's calibration message is
+        returned as the error. The message format and the unit of that number
+        still have to be confirmed against the device.
         """
         if self._link is None:
             return None

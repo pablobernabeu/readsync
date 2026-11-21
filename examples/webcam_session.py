@@ -1,8 +1,8 @@
 """Run a reading session with a webcam in place of the eye-tracker.
 
-Only the tracker changes: a :class:`WebcamTracker` driving a camera and a gaze
-estimator replaces ``EyeLinkTracker``, while the presentation, the encrypted log
-and the export stay the same.
+A session needs only a different tracker. A :class:`WebcamTracker` driving a
+camera and a gaze estimator takes the place of ``EyeLinkTracker``, and the
+presentation, the encrypted log and the export work as before.
 
 Requirements:
 

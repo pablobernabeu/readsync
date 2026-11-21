@@ -22,7 +22,7 @@ def pixels_to_degrees(pixels: float, *, viewing_distance_mm: float, px_per_mm: f
     The extent is measured from the point on the screen straight ahead of the
     eye. ``viewing_distance_mm`` is the eye-to-screen distance and ``px_per_mm``
     is the display's pixel density. For the angle between two arbitrary screen
-    points use :func:`angular_error`, which accounts for where they lie.
+    points, use :func:`angular_error`, which accounts for where they lie.
     """
     if viewing_distance_mm <= 0 or px_per_mm <= 0:
         raise ValueError("viewing_distance_mm and px_per_mm must be positive")

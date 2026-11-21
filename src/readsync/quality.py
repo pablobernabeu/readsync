@@ -68,7 +68,7 @@ class QualityReport:
     ``expected_rate_hz`` where one was given. Because the session polls once per
     display frame, this measures the polled stream, while the tracker's data
     file holds the full-rate record. ``calibration`` and ``drift_errors``
-    collect the logged tracker checks, and ``n_responses``/``n_correct``
+    collect the logged tracker checks, and ``n_responses`` and ``n_correct``
     summarise the comprehension record.
     """
 
@@ -147,7 +147,9 @@ def session_quality(
     passage whose offset never arrived, from a crashed or aborted session, is
     still reported, marked incomplete. ``expected_rate_hz`` must be a positive
     rate when given. The session polls the tracker once per display frame, so
-    pass the display's refresh rate, not the tracker's sampling rate.
+    pass the lower of the display's refresh rate and the rate at which the
+    tracker delivers new samples. For an EyeLink, that is the refresh rate, and
+    for a webcam it may be the camera's frame rate.
     """
     if expected_rate_hz is not None and expected_rate_hz <= 0:
         raise ValueError("expected_rate_hz must be positive when given")

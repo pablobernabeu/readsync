@@ -121,7 +121,7 @@ class EventLog:
             os.fsync(fh.fileno())
 
     def events(self) -> list[dict[str, Any]]:
-        """Decrypt, verify the full chain, and return the events in order.
+        """Decrypt, verify the full chain and return the events in order.
 
         Raises :class:`readsync.security.DecryptionError` if a record fails
         authentication and :class:`IntegrityError` if the chain is broken.

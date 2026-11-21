@@ -51,7 +51,7 @@ export const FILES = [
     "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff",
   ],
   [
-    // The canonical Apache-2.0 text; the npm package declares the licence but
+    // The canonical Apache-2.0 text. The npm package declares the licence but
     // ships no licence file.
     "https://www.apache.org/licenses/LICENSE-2.0.txt",
     "vendor/LICENSE",

@@ -5,9 +5,9 @@ so a stimulus is a sequence of words, each with a character span in the text and
 a bounding box on the screen. Those boxes are the interest areas to which gaze
 is assigned. This module derives them deterministically from a fixed-width
 layout. Monospaced fonts are common in eye-movement studies of reading in Latin
-script, because every letter has the same width, so a word's position and extent
-follow from its character span (Rayner, Slattery & Bélanger, 2010,
-https://doi.org/10.3758/PBR.17.6.834).
+script (Rayner, Slattery & Bélanger, 2010, https://doi.org/10.3758/PBR.17.6.834).
+With every letter the same width, a word's position and extent follow from its
+character span.
 
 Coordinates are screen pixels with the origin at the top-left of the screen and
 y pointing down. ``FixedWidthLayout.x0`` and ``y0`` place the text block.

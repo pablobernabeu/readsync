@@ -8,17 +8,17 @@ python stimuli/build_stimuli.py --subtlex path/to/SUBTLEX-UK.txt
 
 ## Sets
 
-`controlled_freq_en.json` is a word-frequency set. The two members of each pair are the same frame sentence with a different target word, and the two targets have the same number of letters, so frequency is the property deliberately varied. A high-frequency target has a Zipf value of at least 4.5 and a low-frequency target at most 3.6. Each target is annotated as a one-word region with the layer `vocabulary`.
+`controlled_freq_en.json` is a word-frequency set. The two members of each pair are the same sentence with a different target word, and the two targets have the same number of letters, so frequency is the property deliberately varied. A high-frequency target has a Zipf value of at least 4.5 and a low-frequency target at most 3.6. Each target is annotated as a one-word region with the layer `vocabulary`.
 
-`controlled_length_en.json` is the matching word-length set. The long target in each pair has at least three letters more than the short one, and their Zipf values are no more than 0.6 apart. Each target is annotated as a one-word region with the layer `decoding`.
+`controlled_length_en.json` is the matching word-length set. The long target in each pair has at least three letters more than the short one, and their Zipf values are no more than 0.6 apart. In every pair, the long target also has more syllables, so the set contrasts length in letters and in syllables together. Each target is annotated as a one-word region with the layer `decoding`.
 
-The controlled sets hold constant only what they were built to hold constant. Other properties of the chosen words, such as syllable count, morphological complexity and plausibility in the frame, vary freely, and predictability is not normed. Predictability affects reading times separately from frequency (Shain, 2024), so the targets' predictability in their frames should be normed, by cloze or with a language model, before either contrast is analysed. Some target words also occur in other pairs' sentences, which gives them extra exposure within a session, and the build prints each case. In the current sets these are 'garden' and 'tree' in the frequency set, and 'plan' and 'building' in the length set, where 'building' is also the long target of two pairs.
+The controlled sets hold constant only what they were built to hold constant. Other properties of the chosen words, such as morphological complexity and plausibility in the frame, are not controlled, and predictability is not normed. Predictability affects reading times separately from frequency (Shain, 2024), so the targets' predictability in their frames should be normed, by cloze or with a language model, before either contrast is analysed. Some target words also occur in other pairs' sentences, which gives them extra exposure within a session, and the build prints each case. In the current sets these are 'garden' and 'tree' in the frequency set, and 'plan' and 'building' in the length set, where 'building' is also the long target of two pairs.
 
 The frequency and length effects on fixation durations differ between readers. Both are larger in readers with weaker verbal skills (Kuperman & Van Dyke, 2011) and in dyslexic readers (Hawelka et al., 2010), and, measured within individuals, the length effect has proved more reliable across sessions than the frequency effect (Haller et al., 2026). The sets are small, so estimates for a single reader will be noisy.
 
 `naturalistic_en.json` holds short passages of neutral connected prose for practice and for global reading measures, each with a yes/no comprehension question and its answer. No lexical property is controlled in them, and they carry no annotated regions.
 
-The sentences and passages are original and released under CC BY 4.0, as each file states. The Zipf values are derived from wordfreq, whose data files are distributed under CC BY-SA 4.0.
+The sentences, passages and questions are original and released under CC BY 4.0, as each file states. The Zipf values come from wordfreq, whose data are distributed under CC BY-SA 4.0, and each file cites it. The bundled files were built with wordfreq 3.1.1. Its changelog records no change to the data since the cited 3.0.2 release, so the values are those of that release.
 
 ## Format
 
@@ -45,7 +45,7 @@ Published reading corpora load through the same functions once converted to this
 
 Natural Stories (Futrell et al., 2021) is a set of ten English stories with self-paced reading times. It is distributed under CC BY-NC-SA 4.0, whose non-commercial and share-alike terms do not fit the MIT licence of the code or the CC BY 4.0 licence of the bundled sets, so fetch it from its repository under its own terms.
 
-GECO (Cop et al., 2017) records eye movements during the reading of Agatha Christie's novel The Mysterious Affair at Styles (Cop et al., 2015). Its bilingual participants read half of the novel in their first language, Dutch, and half in English. The novel was first published in 1920 and is in the public domain in the United States, but it remains in copyright in the United Kingdom and the European Union until the end of 2046, and the Dutch translation is a separate work, so check the position in your jurisdiction before redistributing the text.
+GECO (Cop et al., 2017) records eye movements during the reading of Agatha Christie's novel The Mysterious Affair at Styles (Cop et al., 2015). Its bilingual participants read half of the novel in their first language, Dutch, and half in English. The novel was first published in 1920 and is in the public domain in the United States, but it remains in copyright in the United Kingdom and the European Union until the end of 2046. The Dutch translation is a separate work with its own rights, so check the position in your jurisdiction before redistributing either text.
 
 MECO (Siegelman et al., 2022; Kuperman et al., 2023) is a multilingual eye-tracking corpus of text reading, with first-language data in thirteen languages in its first release and English second-language data from readers of twelve first languages. Each text in the first-language release is followed by four yes/no comprehension questions, which this format represents directly. Its data and materials are on OSF under CC BY 4.0, for first-language reading at https://doi.org/10.17605/OSF.IO/3527A and for English as a second language at https://doi.org/10.17605/OSF.IO/Q9H43, so they can be converted and redistributed with attribution.
 
@@ -67,7 +67,7 @@ Kuperman, V., Siegelman, N., Schroeder, S., Acartürk, C., Alexeeva, S., Amenta,
 
 Kuperman, V., & Van Dyke, J. A. (2011). Effects of individual differences in verbal skills on eye-movement patterns during sentence reading. *Journal of Memory and Language*, *65*(1), 42–73. https://doi.org/10.1016/j.jml.2011.03.002
 
-Malmaud, J., Levy, R., & Berzak, Y. (2020). Bridging information-seeking human gaze and machine reading comprehension. In *Proceedings of the 24th Conference on Computational Natural Language Learning* (pp. 142–152). Association for Computational Linguistics. https://doi.org/10.18653/v1/2020.conll-1.11
+Malmaud, J., Levy, R., & Berzak, Y. (2020). Bridging information-seeking human gaze and machine reading comprehension. In R. Fernández & T. Linzen (Eds.), *Proceedings of the 24th Conference on Computational Natural Language Learning* (pp. 142–152). Association for Computational Linguistics. https://doi.org/10.18653/v1/2020.conll-1.11
 
 Shain, C. (2024). Word frequency and predictability dissociate in naturalistic reading. *Open Mind*, *8*, 177–201. https://doi.org/10.1162/opmi_a_00119
 
