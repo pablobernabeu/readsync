@@ -18,11 +18,18 @@ one log ``t`` has a single time base. Gaze events additionally carry the
 tracker's own timestamp as ``tracker_t`` for cross-checking against the
 tracker's data file, which keeps its own clock through the marker messages.
 
-Questions and drift checks are optional capabilities, discovered on the
-collaborators at run time: a presenter that implements ``ask`` (and, for the
-information-seeking regime, ``show_prompt``) collects responses, and a tracker
-that implements ``drift_correct`` is checked before each passage. Backends
-without these methods run exactly as before.
+Each passage is one tracker trial. Recording starts at the passage and stops at
+its end, and the drift check runs before recording starts, while the tracker is
+idle, which is the order SR Research's trial structure requires.
+
+Questions, drift checks and trial messages are optional capabilities,
+discovered on the collaborators at run time. A presenter that implements
+``ask`` (and, for the information-seeking regime, ``show_prompt``) collects
+responses. A tracker that implements ``drift_correct`` is checked before each
+passage, and one that implements ``begin_trial`` and ``end_trial`` is told
+where each trial starts and ends, which is how the EyeLink data file receives
+its trial and interest-area messages. Backends without these methods run
+without them.
 """
 
 from __future__ import annotations
@@ -64,11 +71,13 @@ class Presenter(Protocol):
     the reader has signalled that they have finished the passage. ``end_passage``
     clears the display. ``close`` releases any resources.
 
-    Two further methods are optional and looked up at run time, outside this
-    protocol. ``ask(question)`` presents a yes/no comprehension
-    question and returns a :class:`QuestionResponse`. ``show_prompt(text)``
-    displays a question before its passage, for the information-seeking regime,
-    and returns the time at which the reader moved on.
+    Three further methods are optional and looked up at run time, outside this
+    protocol. ``now()`` returns the session clock, so that events outside a
+    passage, such as calibration and the session boundaries, are stamped on the
+    same clock. ``ask(question)`` presents a yes/no comprehension question and
+    returns a :class:`QuestionResponse`. ``show_prompt(text)`` displays a
+    question before its passage, for the information-seeking regime, and
+    returns the time at which the reader moved on.
     """
 
     def start_passage(self, passage: Passage, areas: list[InterestArea]) -> None: ...
@@ -125,6 +134,9 @@ class HeadlessPresenter:
 
     def end_passage(self) -> None:
         return None
+
+    def now(self) -> float:
+        return self._clock
 
     def show_prompt(self, text: str) -> float:
         self._clock += self.seconds_per_question
@@ -198,8 +210,9 @@ class ReadingSession:
         where = {"passage": passage_id, "region": region.id, "layer": region.layer}
         self._emit(Marker(kind, t, where), {"type": kind, "t": t, **where})
 
-    def _run_passage(self, passage: Passage, regions: list[Region]) -> None:
-        areas = interest_areas(passage.words, self.layout)
+    def _run_passage(
+        self, passage: Passage, regions: list[Region], areas: list[InterestArea]
+    ) -> None:
         self.presenter.start_passage(passage, areas)
         current_word: int | None = None
         current_region: Region | None = None
@@ -264,14 +277,18 @@ class ReadingSession:
         if drift is None:
             return
         error = drift()
-        self.log.append({"type": "drift_check", "passage": passage_id, "error": error})
+        self.log.append(
+            {"type": "drift_check", "t": self._now(), "passage": passage_id, "error": error}
+        )
         # A drift check can escalate into a full recalibration; when the
         # tracker's calibration message changed, record the fresh outcome so
         # the quality report shows every calibration, not only the first.
         message = getattr(self.tracker, "last_calibration_message", None)
         if message is not None and str(message) != self._last_calibration:
             self._last_calibration = str(message)
-            self.log.append({"type": "calibration", "detail": self._last_calibration})
+            self.log.append(
+                {"type": "calibration", "t": self._now(), "detail": self._last_calibration}
+            )
 
     def _show_prompts(self, item: StimulusItem) -> None:
         show = getattr(self.presenter, "show_prompt", None)
@@ -303,25 +320,62 @@ class ReadingSession:
                 },
             )
 
+    def _now(self) -> float | None:
+        """The presenter's session clock, where the presenter exposes one."""
+        now = getattr(self.presenter, "now", None)
+        return float(now()) if now is not None else None
+
+    def _run_item(self, item: StimulusItem) -> None:
+        """Run one item as one tracker trial.
+
+        The order follows SR Research's trial structure: the trial is opened,
+        the drift check runs while the tracker is idle, recording covers the
+        passage only, and the trial is closed after the questions.
+        """
+        passage = item.passage
+        areas = interest_areas(passage.words, self.layout)
+        begin_trial = getattr(self.tracker, "begin_trial", None)
+        if begin_trial is not None:
+            begin_trial(passage.id, areas)
+        if item.question_position == "before":
+            self._show_prompts(item)
+        self._drift_check(passage.id)
+        self.tracker.start_recording()
+        try:
+            self._run_passage(passage, item.regions, areas)
+        finally:
+            self.tracker.stop_recording()
+        self._ask_questions(item)
+        end_trial = getattr(self.tracker, "end_trial", None)
+        if end_trial is not None:
+            end_trial({"passage": passage.id, "condition": item.condition})
+
     def _run(self, items: list[StimulusItem]) -> SessionResult:
         self.tracker.connect()
         self.tracker.calibrate()
         calibration = getattr(self.tracker, "last_calibration_message", None)
         if calibration is not None:
             self._last_calibration = str(calibration)
-            self.log.append({"type": "calibration", "detail": self._last_calibration})
-        self.tracker.start_recording()
-        self.log.append({"type": "session_start", "participant": self.participant})
+            self.log.append(
+                {"type": "calibration", "t": self._now(), "detail": self._last_calibration}
+            )
+        self.log.append(
+            {"type": "session_start", "t": self._now(), "participant": self.participant}
+        )
+        status = "aborted"
         try:
             for item in items:
-                self._drift_check(item.passage.id)
-                if item.question_position == "before":
-                    self._show_prompts(item)
-                self._run_passage(item.passage, item.regions)
-                self._ask_questions(item)
+                self._run_item(item)
+            status = "completed"
         finally:
-            self.tracker.stop_recording()
-            self.log.append({"type": "session_end", "participant": self.participant})
+            self.log.append(
+                {
+                    "type": "session_end",
+                    "t": self._now(),
+                    "participant": self.participant,
+                    "status": status,
+                }
+            )
             self.tracker.close()
             self.presenter.close()
         return SessionResult(

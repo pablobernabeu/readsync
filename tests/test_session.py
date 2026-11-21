@@ -265,3 +265,84 @@ def test_questions_are_skipped_when_the_presenter_cannot_ask(tmp_path: Path) -> 
     assert result.n_passages == 1
     assert "response" not in types
     assert "prompt" not in types
+
+
+class _TrialTracker(NullTracker):
+    """Records the order of tracker calls, and fails a drift check while recording."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls: list[str] = []
+
+    def begin_trial(self, trial_id: str, areas: list[object]) -> None:
+        self.calls.append(f"begin {trial_id} {len(areas)}")
+
+    def end_trial(self, variables: dict[str, object]) -> None:
+        self.calls.append(f"end {variables['passage']} {variables['condition']}")
+
+    def drift_correct(self) -> float | None:
+        assert not self._recording, "drift check while recording"
+        self.calls.append("drift")
+        return 0.2
+
+    def start_recording(self) -> None:
+        super().start_recording()
+        self.calls.append("start")
+
+    def stop_recording(self) -> None:
+        super().stop_recording()
+        self.calls.append("stop")
+
+
+def test_each_passage_is_one_trial_recorded_after_its_drift_check(tmp_path: Path) -> None:
+    tracker = _TrialTracker()
+    session = ReadingSession(
+        participant="p",
+        tracker=tracker,
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=EventLog(tmp_path / "s.log", key=new_data_key()),
+    )
+    items = [
+        StimulusItem(passage=Passage(id="p1", text="a b c"), condition="high"),
+        StimulusItem(passage=Passage(id="p2", text="d e"), condition="low"),
+    ]
+    session.run_items(items)
+    assert tracker.calls == [
+        "begin p1 3", "drift", "start", "stop", "end p1 high",
+        "begin p2 2", "drift", "start", "stop", "end p2 low",
+    ]
+
+
+def test_session_events_carry_the_session_clock_and_a_completion_status(
+    tmp_path: Path,
+) -> None:
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p",
+        tracker=_CheckedTracker(),
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=log,
+    )
+    session.run([Passage(id="p1", text="a b c")])
+    events = log.events()
+    for kind in ("calibration", "session_start", "drift_check", "session_end"):
+        event = next(e for e in events if e["type"] == kind)
+        assert isinstance(event["t"], float), kind
+    assert events[-1]["type"] == "session_end"
+    assert events[-1]["status"] == "completed"
+
+
+def test_a_crashed_session_is_closed_as_aborted(tmp_path: Path) -> None:
+    import pytest
+
+    class _Failing(HeadlessPresenter):
+        def tick(self) -> tuple[float, bool]:
+            raise RuntimeError("display lost")
+
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p", tracker=NullTracker(), presenter=_Failing(), log=log
+    )
+    with pytest.raises(RuntimeError, match="display lost"):
+        session.run([Passage(id="p1", text="a b c")])
+    assert log.events()[-1]["status"] == "aborted"
