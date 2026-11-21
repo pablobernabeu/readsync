@@ -1,10 +1,9 @@
-"""Compare two gaze streams in angular terms, for the webcam methods strand.
+"""Compare two gaze streams in degrees of visual angle.
 
-The decisive measure of a webcam tracker is its error in degrees of visual angle
-against a research-grade tracker recording the same reader on the same materials.
-Pixel error alone is not comparable across screens and seating distances, so it
-is converted to an angle with the screen geometry. These helpers are pure and are
-tested.
+A webcam tracker's accuracy is best expressed as its error in degrees of visual
+angle against a research-grade tracker recording the same reader on the same
+materials. Pixel error is not comparable across screens and seating distances,
+so it is converted to an angle with the screen geometry.
 """
 
 from __future__ import annotations

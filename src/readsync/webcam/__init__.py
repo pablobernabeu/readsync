@@ -1,21 +1,19 @@
-"""Webcam eye-tracking benchmark and improvement (research strand).
+"""Webcam gaze estimation.
 
-This subpackage holds the toolkit's methods strand: an open benchmark of
-webcam and camera-based gaze estimation on reading materials, and targeted
-improvements to calibration for text.
+:class:`WebcamTracker` drives a camera and a gaze estimator behind the same
+``Tracker`` interface as the EyeLink backend, so a session can run on a webcam.
+:class:`MediaPipeIrisEstimator` takes face and iris landmarks and the head pose
+from MediaPipe's FaceLandmarker, and :mod:`readsync.webcam.gaze` fits a
+regularised, head-pose-aware calibration from those signals to the screen.
+:mod:`readsync.webcam.benchmark` converts the error between paired gaze points to
+degrees of visual angle, for comparison with a reference eye-tracker.
 
-The current evidence is that webcam gaze is too coarse spatially, with roughly
-one and a half to ten degrees of error, and too slow temporally, at about thirty
-to forty samples a second, for word-level reading measures. It cannot substitute
-for the infrared tracker. The aim of this strand is to map where webcam methods
-are good enough, coarse screening for example, and to push that boundary,
-releasing the results and code openly.
-
-The strand builds on existing tooling for webcam gaze instead of reimplementing
-it. :class:`WebcamTracker` drives a camera and a pluggable gaze estimator behind
-the same ``Tracker`` interface the rest of the toolkit uses, and
-:mod:`readsync.webcam.benchmark` reports accuracy in degrees against the infrared
-tracker on the same readers and materials.
+Webcam gaze is coarser and noisier than infrared eye-tracking. In one comparison
+with an EyeLink 1000, a webcam system erred by 1.45 degrees on average against
+0.91 for the EyeLink (Kaduk et al., 2024, https://doi.org/10.3758/s13428-023-02237-8),
+and a systematic evaluation of WebGazer on a laptop found errors of about 10 to 14
+degrees (Psarra et al., 2026, https://doi.org/10.3390/jemr19050099). This
+module's own accuracy has not yet been measured against a reference tracker.
 """
 
 from __future__ import annotations

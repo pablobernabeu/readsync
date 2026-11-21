@@ -1,17 +1,16 @@
-"""Head-pose-aware gaze model for the webcam strand.
+"""Head-pose-aware webcam gaze model.
 
 The iris feature alone is confounded by head orientation, so even a good
 polynomial calibration drifts when the head turns. This model adds the head yaw
 and pitch as inputs, so the calibration can compensate for the head pose the
-reader actually held, and it records how far the head has moved from the
-calibration pose, so gaze can be flagged when the reader has shifted too far to
-trust.
+reader actually held, and it reports how far the head is outside the range of
+poses seen during calibration, so gaze can be flagged when the reader has moved
+too far to trust.
 
 The fit is a regularised linear least squares over an explicit design that mixes a
 second-order polynomial in the iris feature with head-pose terms and their products
 with the feature, so head pose can rescale the feature, not only shift it.
-The maths is pure Python and is tested; only reading the signals from a frame needs
-a camera.
+Only reading the signals from a frame needs a camera.
 """
 
 from __future__ import annotations
@@ -159,12 +158,14 @@ def cross_validated_error(
 ) -> float:
     """Leave-one-group-out mean error in normalised screen units.
 
-    For each group the model is fitted on the others and then used to predict the
-    held-out group's points. The mean predicted-to-true distance is an unbiased
-    accuracy estimate, because no point is scored by a model that saw it. With
+    For each group, the model is fitted on the others and then used to predict the
+    held-out group's points. The mean predicted-to-true distance is an
+    out-of-sample estimate of calibration error, since no point is scored by a
+    model that saw it. It refers to still calibration targets and does not
+    measure accuracy during reading. With
     multi-pose calibration, ``groups`` labels each point with its screen target, so
     a target's samples at every head pose are held out together and a pose seen for
-    that target elsewhere cannot leak in. Without ``groups`` each point is its own
+    that target elsewhere cannot leak in. Without ``groups``, each point is its own
     group, the plain leave-one-out case.
     """
     n = len(centres)

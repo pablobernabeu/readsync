@@ -2,10 +2,10 @@
 
 A webcam calibration shows the reader a few targets at known screen positions and
 records the eye feature while they fixate each one. Averaging the feature over the
-fixation reduces noise, and an affine map is then fitted from the averaged
-features to the target positions. These helpers are pure and are tested. The
-interactive part that shows the targets and reads the camera lives in the example
-script, because it needs a display and a camera.
+fixation reduces noise, and an affine or regularised polynomial map is then
+fitted from the averaged features to the target positions. The live demo,
+examples/webcam_live_demo.py, uses the head-aware model in
+:mod:`readsync.webcam.gaze` instead.
 """
 
 from __future__ import annotations
@@ -76,8 +76,8 @@ def fit_polynomial_from_fixations(
     """Fit a regularised polynomial calibration from per-target fixation samples.
 
     Each target's features are reduced to their median, then a polynomial map is
-    fitted. This captures the curvature of the iris-to-screen relationship that an
-    affine map cannot, which is the main lever on webcam gaze accuracy.
+    fitted. This can capture curvature in the iris-to-screen relationship that an
+    affine map cannot.
     """
     if len(fixations) != len(targets):
         raise ValueError("fixations and targets must have the same length")

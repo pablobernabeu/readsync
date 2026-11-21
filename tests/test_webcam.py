@@ -472,3 +472,44 @@ def test_fit_from_fixations_averages_then_fits() -> None:
 def test_fit_from_fixations_rejects_length_mismatch() -> None:
     with pytest.raises(ValueError, match="same length"):
         fit_from_fixations([[(0.0, 0.0)]], [(0.0, 0.0), (1.0, 1.0)])
+
+
+def test_estimator_maps_signals_with_a_head_aware_model_and_flags_blinks() -> None:
+    from readsync.webcam import MediaPipeIrisEstimator
+
+    signals = [
+        GazeSignals(fx=0.2 + 0.6 * nx, fy=0.1 + 0.5 * ny, yaw=y, pitch=0.0, roll=0.0, openness=0.3)
+        for y in (0.0, 0.2)
+        for nx in (0.1, 0.5, 0.9)
+        for ny in (0.1, 0.5, 0.9)
+    ]
+    targets = [(0.1 + 0.8 * ((s.fx - 0.2) / 0.6), (s.fy - 0.1) / 0.5) for s in signals]
+    model = HeadAwareGazeModel.fit(signals, targets)
+    estimator = MediaPipeIrisEstimator(model=model)
+
+    open_eye = GazeSignals(fx=0.5, fy=0.35, yaw=0.1, pitch=0.0, roll=0.0, openness=0.3)
+    nx, ny, confidence = estimator.estimate_from_signals(open_eye)
+    assert (nx, ny) == pytest.approx(model.map(open_eye))
+    assert confidence == 1.0
+
+    blink = GazeSignals(fx=0.5, fy=0.35, yaw=0.1, pitch=0.0, roll=0.0, openness=0.05)
+    assert estimator.estimate_from_signals(blink)[2] == 0.0
+
+    turned = GazeSignals(fx=0.5, fy=0.35, yaw=0.2 + math.radians(20), pitch=0.0, roll=0.0,
+                         openness=0.3)
+    assert estimator.estimate_from_signals(turned)[2] == 0.0
+
+
+def test_estimator_falls_back_to_the_iris_calibration_and_needs_one() -> None:
+    from readsync.webcam import MediaPipeIrisEstimator
+
+    calibration = AffineCalibration.fit(
+        [(0.4, 0.4), (0.6, 0.4), (0.4, 0.6), (0.6, 0.6)],
+        [(0.2, 0.2), (0.8, 0.2), (0.2, 0.8), (0.8, 0.8)],
+    )
+    signals = GazeSignals(fx=0.5, fy=0.5, yaw=0.0, pitch=0.0, roll=0.0, openness=0.3)
+    nx, ny, confidence = MediaPipeIrisEstimator(calibration=calibration).estimate_from_signals(
+        signals
+    )
+    assert (nx, ny, confidence) == pytest.approx((0.5, 0.5, 1.0))
+    assert MediaPipeIrisEstimator().estimate_from_signals(signals) is None
