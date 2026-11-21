@@ -34,9 +34,10 @@ __all__ = [
 # feature products let head pose change the gain of the feature, not only add an
 # offset, which is what a still-head calibration held at two poses needs in order to
 # fit both poses instead of averaging them. The model has no roll terms. The iris
-# feature is measured in the eye's own axes, which keeps it stable when the head
-# and eyes roll together, but a reader who rolls the head while looking at the
-# same point turns the eyes within the head, which changes the feature. Head roll
+# feature is measured in the eye's own axes, which on a square frame keeps it
+# stable when the head and eyes roll together, but a reader who rolls the head
+# while looking at the same point turns the eyes within the head, which changes
+# the feature. Head roll
 # during reading therefore adds error that the model does not correct.
 _N_TERMS = 12
 
@@ -81,8 +82,10 @@ class HeadAwareGazeModel:
 
     ``pose_lo`` and ``pose_hi`` are the per-axis range of head orientation seen
     during calibration. Calibrating at more than one head position widens that
-    range and gives the yaw and pitch terms something to learn from, so the model
-    compensates across the calibrated range, not only near a single pose.
+    range and gives the yaw and pitch terms something to learn from. The model is
+    supported by data only near the calibrated poses. With two poses, head
+    positions inside the per-axis range but away from the line between them are
+    extrapolated, and :meth:`pose_drift_degrees` does not flag them.
     """
 
     coeffs_x: list[float]

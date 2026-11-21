@@ -37,7 +37,7 @@ pip install -e ".[stimuli]"
 python stimuli/build_stimuli.py
 ```
 
-The script writes all three files, records the frequency source and its version in each file's `source` field and cites that source. Frequency pairs whose targets miss the thresholds, and length pairs that are too close in length or too far apart in frequency, are dropped with a message. A word missing from the frequency source is written with a null Zipf value, and a pair whose target is missing is dropped. The browser demo keeps a copy of `controlled_freq_en.json` in `web-demo/public/stimuli/`, and a test fails if the two differ, so copy the rebuilt file there too.
+The script writes all three files, records the frequency source in each file's `source` field, with the wordfreq version or the SUBTLEX-UK file name, and cites that source. Frequency pairs whose targets miss the thresholds, and length pairs that are too close in length or too far apart in frequency, are dropped with a message. A word missing from the frequency source is written with a null Zipf value, and a pair whose target is missing is dropped. The browser demo keeps a copy of `controlled_freq_en.json` in `web-demo/public/stimuli/`, and a test fails if the two differ, so copy the rebuilt file there too.
 
 ## Adding published corpora
 

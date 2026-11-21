@@ -124,7 +124,9 @@ class WebcamTracker:
     invalid when the estimator's confidence is below ``min_confidence``, when the
     estimate falls off the screen or when no gaze is returned. Each sample is
     stamped with the time the session polled it, so the delay between the
-    camera's exposure and the estimate is not recorded.
+    camera's exposure and the estimate is not recorded. The camera read and the
+    estimate run inside the session's display loop, so a slow estimate can
+    delay the next frame.
 
     Parameters
     ----------
@@ -411,7 +413,12 @@ class MediaPipeIrisEstimator:
     Confidence is 0 during a blink, when the openness falls below
     ``blink_openness``, and when the head is more than ``max_pose_drift_deg``
     outside the range seen at calibration, as reported by a model that offers
-    ``pose_drift_degrees``. Otherwise it is 1. :class:`WebcamTracker` marks
+    ``pose_drift_degrees``. Otherwise it is 1. The openness is computed from
+    landmark coordinates normalised by the frame's width and height, so the same
+    threshold corresponds to different eye closures on cameras with different
+    aspect ratios. The vertical iris feature is divided by the lid gap, so a
+    partly closed eye that stays above the threshold shifts the estimate
+    downwards. :class:`WebcamTracker` marks
     low-confidence samples invalid, so the session holds the current word and
     region through them.
 
@@ -483,8 +490,8 @@ class MediaPipeIrisEstimator:
 
         The horizontal value is the iris projected onto the corner-to-corner axis
         and the vertical value is its projection onto the perpendicular, each
-        normalised by the matching span. The feature stays the same when the head
-        and eyes roll together. It changes when the head rolls while the gaze
+        normalised by the matching span. On a square frame, the feature stays the
+        same when the head and eyes roll together. It changes when the head rolls while the gaze
         stays on one point, because the eyes then turn within the head. The
         landmark x and y are fractions of the frame's width and height, so on a
         non-square frame these lengths and directions are distorted by the

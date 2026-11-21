@@ -77,7 +77,9 @@ SAMPLES_PER_TARGET = 20
 # A plausible iris feature sits near [0, 1] horizontally and near 0 vertically.
 # Values well outside this come from a lost face, so they are dropped.
 FX_RANGE, FY_RANGE = (-0.6, 1.6), (-1.6, 1.6)
-# Eye-aspect ratio below this is treated as a blink; gaze is held, not updated.
+# Eye-aspect ratio below this is treated as a blink, and gaze is held. The ratio is
+# computed in coordinates normalised by the frame's width and height, so its
+# meaning depends on the camera's aspect ratio.
 BLINK_OPENNESS = 0.15
 # Gaze is marked invalid once the head is this far outside the calibrated range.
 DRIFT_LIMIT_DEG = 12.0

@@ -309,7 +309,7 @@ def report_reuse(items: list[dict[str, object]]) -> None:
     for item in items:
         target = item["target"]
         assert isinstance(target, dict)
-        word = str(target["word"]).lower()
+        word = str(target["word"]).strip(string.punctuation).lower()
         elsewhere = sorted(
             str(other["id"])
             for other in items

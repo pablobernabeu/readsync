@@ -41,6 +41,7 @@ from .tracker import (
     MediaPipeIrisEstimator,
     OpenCVCamera,
     PolynomialCalibration,
+    SignalModel,
     WebcamTracker,
     head_pose_from_matrix,
 )
@@ -51,6 +52,7 @@ __all__ = [
     "FrameSource",
     "OpenCVCamera",
     "Calibration",
+    "SignalModel",
     "AffineCalibration",
     "PolynomialCalibration",
     "GazeSignals",

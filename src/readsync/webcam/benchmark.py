@@ -77,7 +77,10 @@ def mean_angular_error(
     """Mean angular error in degrees between paired reference and estimate points.
 
     ``reference`` is the research-grade gaze and ``estimate`` is the webcam gaze,
-    sampled at matched moments. The two sequences must be the same length.
+    sampled at matched moments. Webcam samples logged by a session carry the
+    time they were polled, not the camera's exposure time, so pairing them by
+    time leaves an unmeasured latency. The two sequences must be the same
+    length.
     ``eye_px`` is as in :func:`angular_error`.
     """
     if len(reference) != len(estimate):

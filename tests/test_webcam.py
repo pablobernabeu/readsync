@@ -279,7 +279,7 @@ def test_eye_feature_values_in_eye_frame() -> None:
     assert fy == pytest.approx(0.25)  # 0.02 below centre over a 0.08 lid gap
 
 
-def test_eye_feature_is_roll_invariant() -> None:
+def test_eye_feature_is_unchanged_when_eye_and_head_roll_together() -> None:
     from readsync.webcam.tracker import MediaPipeIrisEstimator
 
     landmarks = _eye_landmarks((0.47, 0.52))
