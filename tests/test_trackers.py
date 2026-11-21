@@ -157,3 +157,69 @@ def test_eyelink_builds_calibration_graphics_from_the_connected_link() -> None:
     assert built == [tracker._link]
     assert tracker._pylink.opened == [("graphics for", tracker._link)]
     assert tracker.last_calibration_message == "calibration ok"
+
+
+class _Eye:
+    def __init__(self, x: float, y: float) -> None:
+        self._xy = (x, y)
+
+    def getGaze(self) -> tuple[float, float]:
+        return self._xy
+
+
+class _Sample:
+    def __init__(self, left: tuple[float, float] | None, right: tuple[float, float] | None) -> None:
+        self._left, self._right = left, right
+
+    def isLeftSample(self) -> bool:
+        return self._left is not None
+
+    def isRightSample(self) -> bool:
+        return self._right is not None
+
+    def getLeftEye(self) -> _Eye:
+        assert self._left is not None
+        return _Eye(*self._left)
+
+    def getRightEye(self) -> _Eye:
+        assert self._right is not None
+        return _Eye(*self._right)
+
+    def getTime(self) -> float:
+        return 5000.0
+
+
+@pytest.mark.parametrize(
+    ("eye", "left", "right", "expected"),
+    [
+        (None, (10.0, 20.0), (30.0, 40.0), (30.0, 40.0, True)),
+        (None, (10.0, 20.0), None, (10.0, 20.0, True)),
+        ("left", (10.0, 20.0), (30.0, 40.0), (10.0, 20.0, True)),
+        ("left", None, (30.0, 40.0), (-32768.0, -32768.0, False)),
+    ],
+)
+def test_eyelink_poll_uses_the_chosen_eye(
+    eye: str | None,
+    left: tuple[float, float] | None,
+    right: tuple[float, float] | None,
+    expected: tuple[float, float, bool],
+) -> None:
+    from readsync.trackers import EyeLinkTracker
+
+    class _Link:
+        def getNewestSample(self) -> _Sample:
+            return _Sample(left, right)
+
+    tracker = EyeLinkTracker(eye=eye)
+    tracker._link = _Link()
+    sample = tracker.poll(0.0)
+    assert sample is not None
+    assert (sample.x, sample.y, sample.valid) == expected
+    assert sample.t == 5.0  # the Host PC time of the sample, in seconds
+
+
+def test_eyelink_refuses_an_unknown_eye() -> None:
+    from readsync.trackers import EyeLinkTracker
+
+    with pytest.raises(ValueError, match="eye must be"):
+        EyeLinkTracker(eye="both")

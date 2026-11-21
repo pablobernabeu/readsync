@@ -17,7 +17,7 @@ class _RecordingTracker:
 
 def test_marker_message_carries_sorted_metadata() -> None:
     marker = Marker("region_enter", 1.5, {"region": "r1", "passage": "p1", "layer": "decoding"})
-    assert marker.message() == "region_enter layer=decoding passage=p1 region=r1"
+    assert marker.message() == "region_enter passage=p1 region=r1 layer=decoding"
 
 
 def test_marker_message_without_metadata_is_the_bare_label() -> None:

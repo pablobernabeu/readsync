@@ -459,3 +459,22 @@ def test_an_escalated_drift_check_logs_the_calibration_even_if_its_message_repea
     session.run([Passage(id="p1", text="a"), Passage(id="p2", text="b")])
     calibrations = [e for e in log.events() if e["type"] == "calibration"]
     assert len(calibrations) == 3  # the initial calibration and one per escalation
+
+
+def test_a_tracker_frame_that_differs_from_the_window_is_refused(tmp_path: Path) -> None:
+    import pytest
+
+    class _Framed(NullTracker):
+        screen_size = (1920, 1080)
+
+    class _Windowed(HeadlessPresenter):
+        size = (1280, 720)
+
+    session = ReadingSession(
+        participant="p",
+        tracker=_Framed(),
+        presenter=_Windowed(),
+        log=EventLog(tmp_path / "s.log", key=new_data_key()),
+    )
+    with pytest.raises(ValueError, match="would not line up"):
+        session.run([Passage(id="p1", text="a")])

@@ -375,6 +375,18 @@ class ReadingSession:
                 f"the log at {self.log.path} already holds {len(self.log)} records; "
                 "give each session its own log file"
             )
+        tracker_size = getattr(self.tracker, "screen_size", None)
+        window_size = getattr(self.presenter, "size", None)
+        if (
+            tracker_size is not None
+            and window_size is not None
+            and tuple(tracker_size) != tuple(window_size)
+        ):
+            raise ValueError(
+                f"the tracker reports gaze in a {tracker_size[0]}x{tracker_size[1]} "
+                f"frame but the presenter's window is {window_size[0]}x{window_size[1]}, "
+                "so gaze would not line up with the words"
+            )
         session_id = uuid.uuid4().hex
         self.tracker.connect()
         self.tracker.calibrate()

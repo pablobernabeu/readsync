@@ -30,6 +30,9 @@ _UNSAFE = re.compile(r"[\s=]+")
 # the lower figure, which makes any truncation explicit and the same everywhere.
 EYELINK_MESSAGE_LIMIT = 128
 
+# Marker fields that identify the event, written before the others.
+_IDENTIFIERS = ("passage", "word", "region", "question")
+
 
 def _token(value: Any) -> str:
     """One whitespace- and ``=``-free token for the ``key=value`` message format."""
@@ -49,15 +52,18 @@ class Marker:
     def message(self) -> str:
         """The marker as one line for a hardware stream.
 
-        The label is followed by the metadata as sorted ``key=value`` pairs, so
-        the EyeLink data file and the EEG stream carry the same detail as the
-        session log and alignment needs no cross-referencing, for example
-        ``region_enter layer=decoding passage=p1 region=r1``. Whitespace and
-        ``=`` inside the label, keys or values are replaced with ``_``, so a
-        study-supplied id can never make the line unparseable; the stimulus
-        loader additionally refuses such ids at load time.
+        The label is followed by the metadata as ``key=value`` pairs, the
+        identifiers first (passage, word, region, question) and the rest in
+        alphabetical order, for example
+        ``region_enter passage=p1 region=r1 layer=decoding``. Putting the
+        identifiers first means that a message cut to a length limit loses the
+        least important fields. Whitespace and ``=`` inside the label, keys or
+        values are replaced with ``_``, so a study-supplied id cannot make the
+        line unparseable, and the stimulus loader refuses such ids at load.
         """
-        detail = " ".join(f"{_token(k)}={_token(v)}" for k, v in sorted(self.meta.items()))
+        order = {key: rank for rank, key in enumerate(_IDENTIFIERS)}
+        fields = sorted(self.meta.items(), key=lambda kv: (order.get(kv[0], len(order)), kv[0]))
+        detail = " ".join(f"{_token(k)}={_token(v)}" for k, v in fields)
         return f"{_token(self.label)} {detail}".strip()
 
 

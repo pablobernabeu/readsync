@@ -192,6 +192,12 @@ class EyeLinkTracker:
     interest_area_files:
         Write each trial's interest-area set beside the local EDF file and name it
         in the trial's messages. Set to ``False`` to send the trial messages alone.
+    eye:
+        The eye whose gaze drives the session's word and region events:
+        ``"left"``, ``"right"`` or ``None``. With ``None``, a binocular sample
+        uses the right eye and a monocular one the eye recorded. With a named
+        eye, a sample without that eye's data is invalid. The data file keeps
+        every recorded eye either way.
     """
 
     def __init__(
@@ -207,7 +213,10 @@ class EyeLinkTracker:
         graphics_factory: Callable[[Any], object] | None = None,
         dummy: bool = False,
         interest_area_files: bool = True,
+        eye: str | None = None,
     ) -> None:
+        if eye not in (None, "left", "right"):
+            raise ValueError(f"eye must be 'left', 'right' or None, got {eye!r}")
         self.address = address
         self.sample_rate = sample_rate
         self.calibration = calibration
@@ -218,6 +227,7 @@ class EyeLinkTracker:
         self.graphics_factory = graphics_factory
         self.dummy = dummy
         self.interest_area_files = interest_area_files
+        self.eye = eye
         self._pylink: Any = None
         self._link: Any = None
         self._missing: float = _MISSING_DATA
@@ -259,7 +269,7 @@ class EyeLinkTracker:
         self._link.sendCommand("file_sample_data = LEFT,RIGHT,GAZE,STATUS")
         self._link.sendCommand("link_sample_data = LEFT,RIGHT,GAZE,STATUS")
 
-    def calibrate(self) -> None:  # pragma: no cover - requires the host
+    def calibrate(self) -> None:
         if self._link is None:
             raise RuntimeError("connect() must be called before calibrate()")
         if not self._graphics_open:
@@ -317,19 +327,20 @@ class EyeLinkTracker:
         # Let a few samples arrive before the passage is drawn.
         self._pylink.pumpDelay(100)
 
-    def poll(self, t: float) -> GazeSample | None:  # pragma: no cover - requires the host
+    def poll(self, t: float) -> GazeSample | None:
         if self._link is None:
             return None
         sample = self._link.getNewestSample()
         if sample is None:
             return None
-        if sample.isRightSample():
-            eye = sample.getRightEye()
-        elif sample.isLeftSample():
-            eye = sample.getLeftEye()
+        right = self.eye in (None, "right") and sample.isRightSample()
+        left = self.eye in (None, "left") and sample.isLeftSample()
+        if right:
+            gaze_x, gaze_y = sample.getRightEye().getGaze()
+        elif left:
+            gaze_x, gaze_y = sample.getLeftEye().getGaze()
         else:
-            return None
-        gaze_x, gaze_y = eye.getGaze()
+            gaze_x = gaze_y = self._missing
         return _gaze_from_components(
             gaze_x, gaze_y, float(sample.getTime()), missing=self._missing
         )
