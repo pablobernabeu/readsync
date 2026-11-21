@@ -12,8 +12,9 @@ export const RIGHT_EYE = [468, 33, 133, 159, 145];
 export const LEFT_EYE = [473, 362, 263, 386, 374];
 
 export function eyeFeature(landmarks, spec) {
-  // Iris position in the eye's own frame, as fractions of width and height. Using
-  // the eye's own axes makes the feature invariant to head roll.
+  // Iris position in the eye's own frame, as fractions of width and height, as in
+  // readsync.webcam.tracker. See there for how head roll and the frame's aspect
+  // ratio affect it.
   const [iris, a, b, up, lo] = spec;
   const ax = landmarks[a].x, ay = landmarks[a].y;
   const bx = landmarks[b].x, by = landmarks[b].y;
@@ -73,7 +74,8 @@ export function signalsFromResult(result) {
 // yaw and pitch, and the products of head pose with the iris feature. The pose-by-
 // feature products let head pose change the feature's gain, not only add an offset.
 // That is what a still-head calibration held at two poses needs in order to fit
-// both poses instead of averaging them. Roll is handled by the roll-invariant feature.
+// both poses instead of averaging them. There are no roll terms, so head roll
+// while reading adds error (see readsync.webcam.gaze).
 function design(s) {
   const { fx, fy, yaw, pitch } = s;
   return [

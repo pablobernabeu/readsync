@@ -241,3 +241,16 @@ test("head pose matches the desktop on matrices packed as MediaPipe packs them",
     assert.ok(close(roll, angles[2], 1e-9), `roll[${i}]`);
   });
 });
+
+test("eye features and openness match the desktop on shared landmarks", () => {
+  PARITY.eyes.forEach(({ points, right, left, openness }, i) => {
+    const landmarks = Array.from({ length: 478 }, () => ({ x: 0, y: 0 }));
+    for (const [index, x, y] of points) landmarks[index] = { x, y };
+    const [rx, ry] = eyeFeature(landmarks, RIGHT_EYE);
+    const [lx, ly] = eyeFeature(landmarks, LEFT_EYE);
+    assert.ok(close(rx, right[0], 1e-12) && close(ry, right[1], 1e-12), `right[${i}]`);
+    assert.ok(close(lx, left[0], 1e-12) && close(ly, left[1], 1e-12), `left[${i}]`);
+    assert.ok(close(eyeOpenness(landmarks, RIGHT_EYE), openness[0], 1e-12), `open.r[${i}]`);
+    assert.ok(close(eyeOpenness(landmarks, LEFT_EYE), openness[1], 1e-12), `open.l[${i}]`);
+  });
+});

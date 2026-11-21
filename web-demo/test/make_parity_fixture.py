@@ -3,10 +3,11 @@
 The desktop implementation (readsync.webcam.gaze) is the reference. This script
 builds a deterministic two-pose calibration, fits the head-aware model, and
 records the fitted coefficients, mapped probe points, pose-drift values and the
-cross-validated error into ``fixtures/parity.json``. The Node test suite then
-fits the JavaScript port on the same inputs and checks every output against
-these numbers, so the two implementations are held to the same arithmetic, not
-merely to the same properties.
+cross-validated error into ``fixtures/parity.json``. It also records the eye
+features and openness for sets of landmarks, and the head-pose angles for
+matrices packed as MediaPipe packs them. The Node test suite runs the
+JavaScript port on the same inputs and checks every output against these
+numbers.
 
 Regenerate after any deliberate change to the gaze maths, on either side:
 
@@ -29,7 +30,11 @@ from readsync.webcam.gaze import (  # noqa: E402
     HeadAwareGazeModel,
     cross_validated_error,
 )
-from readsync.webcam.tracker import GazeSignals, head_pose_from_matrix  # noqa: E402
+from readsync.webcam.tracker import (  # noqa: E402
+    GazeSignals,
+    MediaPipeIrisEstimator,
+    head_pose_from_matrix,
+)
 
 RIDGE = 1e-3
 
@@ -66,6 +71,39 @@ def _head_pose_cases() -> list[dict[str, object]]:
         matrix = _rotation(*angles)
         packed = [matrix[i][j] for j in range(4) for i in range(4)]  # column-major
         cases.append({"packed": packed, "angles": list(head_pose_from_matrix(matrix))})
+    return cases
+
+
+def _eye_cases() -> list[dict[str, object]]:
+    """Landmark sets with tilted, unequal eyes, and the desktop eye measures."""
+    from types import SimpleNamespace
+
+    noise = _lcg(7)
+    cases = []
+    for tilt in (0.0, 0.12, -0.2):
+        points = [{"x": 0.0, "y": 0.0} for _ in range(478)]
+        for spec, cx in ((MediaPipeIrisEstimator._RIGHT_EYE, 0.40),
+                         (MediaPipeIrisEstimator._LEFT_EYE, 0.60)):
+            iris, a, b, up, lo = spec
+            for index, (dx, dy) in {a: (-0.05, 0.0), b: (0.05, 0.0), up: (0.0, -0.02),
+                                    lo: (0.0, 0.021), iris: (0.012, -0.004)}.items():
+                jitter = (next(noise) - 0.5) * 0.004
+                x = cx + dx * (1 - tilt * tilt / 2) - dy * tilt + jitter
+                y = 0.5 + dx * tilt + dy + jitter
+                points[index] = {"x": x, "y": y}
+        landmarks = [SimpleNamespace(**pt) for pt in points]
+        used = sorted(set(MediaPipeIrisEstimator._RIGHT_EYE + MediaPipeIrisEstimator._LEFT_EYE))
+        cases.append({
+            "points": [[i, points[i]["x"], points[i]["y"]] for i in used],
+            "right": list(MediaPipeIrisEstimator._eye_feature(
+                landmarks, MediaPipeIrisEstimator._RIGHT_EYE)),
+            "left": list(MediaPipeIrisEstimator._eye_feature(
+                landmarks, MediaPipeIrisEstimator._LEFT_EYE)),
+            "openness": [
+                MediaPipeIrisEstimator._eye_openness(landmarks, MediaPipeIrisEstimator._RIGHT_EYE),
+                MediaPipeIrisEstimator._eye_openness(landmarks, MediaPipeIrisEstimator._LEFT_EYE),
+            ],
+        })
     return cases
 
 
@@ -113,6 +151,7 @@ def build() -> dict[str, object]:
         "drift_degrees": [model.pose_drift_degrees(p) for p in probes],
         "cv_error": cross_validated_error(signals, targets, ridge=RIDGE, groups=groups),
         "head_pose": _head_pose_cases(),
+        "eyes": _eye_cases(),
     }
 
 
