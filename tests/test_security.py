@@ -145,3 +145,33 @@ def test_nested_guards_unwind_in_order() -> None:
             pass
         assert socket.socket.connect is patched
     assert socket.socket.connect is original
+
+
+def test_guards_may_overlap_out_of_order() -> None:
+    original = socket.socket.connect
+    first, second = NetworkGuard(), NetworkGuard()
+    first.__enter__()
+    second.__enter__()
+    first.__exit__(None, None, None)
+    # The second guard is still active, so outbound connections stay blocked.
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    with pytest.raises(OfflineViolation):
+        sock.connect(("192.0.2.1", 80))
+    sock.close()
+    second.__exit__(None, None, None)
+    assert socket.socket.connect is original
+
+
+def test_the_strictest_active_guard_decides() -> None:
+    with NetworkGuard(), NetworkGuard(allow_loopback=False):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        with pytest.raises(OfflineViolation):
+            sock.connect(("127.0.0.1", 9))
+        sock.close()
+
+
+def test_guard_restores_the_methods_after_an_exception() -> None:
+    original = socket.socket.connect
+    with pytest.raises(RuntimeError), NetworkGuard():
+        raise RuntimeError("boom")
+    assert socket.socket.connect is original
