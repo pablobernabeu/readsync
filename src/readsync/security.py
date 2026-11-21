@@ -134,8 +134,6 @@ class NetworkGuard(AbstractContextManager["NetworkGuard"]):
 
     def __init__(self, *, allow_loopback: bool = True) -> None:
         self.allow_loopback = allow_loopback
-        self._original_connect = socket.socket.connect
-        self._original_connect_ex = socket.socket.connect_ex
 
     def _permitted(self, address: Any) -> bool:
         if not self.allow_loopback:
@@ -148,6 +146,10 @@ class NetworkGuard(AbstractContextManager["NetworkGuard"]):
         return _is_loopback(host)
 
     def __enter__(self) -> NetworkGuard:
+        # The methods in place at entry are restored at exit, so guards nest
+        # correctly however they were constructed.
+        self._original_connect = socket.socket.connect
+        self._original_connect_ex = socket.socket.connect_ex
         original_connect = self._original_connect
         original_connect_ex = self._original_connect_ex
 

@@ -126,3 +126,22 @@ def test_guard_blocks_connect_ex_too() -> None:
                 sock.connect_ex(("93.184.216.34", 80))
         finally:
             sock.close()
+
+
+def test_a_guard_built_inside_another_restores_the_real_methods() -> None:
+    original = socket.socket.connect
+    with NetworkGuard():
+        later = NetworkGuard()
+    with later:
+        pass
+    assert socket.socket.connect is original
+
+
+def test_nested_guards_unwind_in_order() -> None:
+    original = socket.socket.connect
+    with NetworkGuard():
+        patched = socket.socket.connect
+        with NetworkGuard():
+            pass
+        assert socket.socket.connect is patched
+    assert socket.socket.connect is original
