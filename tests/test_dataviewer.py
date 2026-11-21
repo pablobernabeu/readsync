@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from readsync.dataviewer import (
-    ias_filename,
     ias_text,
     trial_end_messages,
     trial_start_messages,
@@ -34,12 +33,6 @@ def test_ias_text_has_one_tab_separated_rectangle_per_word() -> None:
 def test_write_ias_creates_the_file(tmp_path: Path) -> None:
     out = write_ias(_areas(), tmp_path / "sets" / "p1.ias")
     assert out.read_text(encoding="utf-8") == ias_text(_areas())
-
-
-def test_ias_filename_is_safe_on_any_file_system() -> None:
-    assert ias_filename("p01h") == "p01h.ias"
-    assert ias_filename("a/b c:d") == "a_b_c_d.ias"
-    assert ias_filename("..") == "trial.ias"
 
 
 def test_trial_start_messages_open_the_trial_and_name_the_set() -> None:

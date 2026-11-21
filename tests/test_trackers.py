@@ -90,12 +90,12 @@ def test_eyelink_trial_messages_and_interest_area_file(tmp_path: Path) -> None:
     tracker.end_trial({"passage": "p01h", "condition": "high"})
     assert tracker._link.messages == [
         "TRIALID p01h",
-        "!V IAREA FILE p01h.ias",
+        "!V IAREA FILE s01_001.ias",
         "!V TRIAL_VAR passage p01h",
         "!V TRIAL_VAR condition high",
         "TRIAL_RESULT 0",
     ]
-    lines = (tmp_path / "p01h.ias").read_text(encoding="utf-8").splitlines()
+    lines = (tmp_path / "s01_001.ias").read_text(encoding="utf-8").splitlines()
     assert lines[1].split("\t")[:2] == ["RECTANGLE", "1"]
     assert len(lines) == 3
 
@@ -123,7 +123,7 @@ def test_eyelink_call_sequence_runs_in_pylink_dummy_mode(tmp_path: Path) -> None
     tracker.stop_recording()
     tracker.end_trial({"passage": "p1"})
     tracker.close()
-    assert (tmp_path / "p1.ias").exists()
+    assert (tmp_path / "d_001.ias").exists()
 
 
 def test_eyelink_builds_calibration_graphics_from_the_connected_link() -> None:

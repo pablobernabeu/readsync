@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
-from .dataviewer import ias_filename, trial_end_messages, trial_start_messages, write_ias
+from .dataviewer import trial_end_messages, trial_start_messages, write_ias
 from .text import InterestArea
 
 __all__ = ["GazeSample", "Tracker", "NullTracker", "EyeLinkTracker"]
@@ -155,7 +155,8 @@ class EyeLinkTracker:
     hardware traffic, not internet traffic.
 
     The session runs each passage as one trial. :meth:`begin_trial` writes the
-    passage's interest-area set beside the local copy of the EDF file and sends
+    passage's interest-area set beside the local copy of the EDF file, named
+    after that file and the trial's position in the session, and sends
     the ``TRIALID`` and ``!V IAREA FILE`` messages, and :meth:`end_trial` sends
     the trial variables and ``TRIAL_RESULT``, so EyeLink Data Viewer segments the
     recording by passage and loads the session's word boxes (see
@@ -232,7 +233,9 @@ class EyeLinkTracker:
         self._link: Any = None
         self._missing: float = _MISSING_DATA
         self._graphics_open = False
+        self._trials = 0
         self.last_calibration_message: str | None = None
+        self.last_drift_status: int | None = None
 
     def connect(self) -> None:
         try:
@@ -303,6 +306,7 @@ class EyeLinkTracker:
             return None
         width, height = self.screen_size
         status = self._link.doDriftCorrect(width // 2, height // 2, 1, 1)
+        self.last_drift_status = int(status)
         if status != 0:
             # The check was aborted or escalated into a full recalibration, so
             # refresh the stored outcome for the session to log.
@@ -362,13 +366,27 @@ class EyeLinkTracker:
         are written whether or not the tracker is recording, as in SR Research's
         trial structure.
         """
+        self._trials += 1
         ias_file = None
         if self.interest_area_files:
+            # Named by the data file and the trial's position in the session, so
+            # sets from different sessions or repeated passages cannot collide.
             local_edf = Path(self.receive_to or self.edf_name)
-            ias_file = ias_filename(trial_id)
+            ias_file = f"{local_edf.stem}_{self._trials:03d}.ias"
             write_ias(areas, local_edf.parent / ias_file)
         for message in trial_start_messages(trial_id, ias_file):
             self.send_message(message)
+
+    def describe(self) -> dict[str, object]:
+        """The settings the session records with its start."""
+        return {
+            "backend": "eyelink",
+            "screen_size": list(self.screen_size),
+            "sample_rate": self.sample_rate,
+            "calibration": self.calibration,
+            "eye": self.eye,
+            "edf": self.edf_name,
+        }
 
     def end_trial(self, variables: Mapping[str, object] | None = None) -> None:
         """Attach the trial variables and close the trial in the data file."""

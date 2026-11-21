@@ -31,26 +31,18 @@ from .markers import EYELINK_MESSAGE_LIMIT
 from .text import InterestArea
 
 __all__ = [
-    "ias_filename",
     "ias_text",
     "trial_end_messages",
     "trial_start_messages",
     "write_ias",
 ]
 
-_UNSAFE_NAME = re.compile(r"[^A-Za-z0-9._-]+")
 _UNSAFE_VALUE = re.compile(r"\s+")
 
 
 def _value(value: object) -> str:
     """One whitespace-free token, so a message splits into fields unambiguously."""
     return _UNSAFE_VALUE.sub("_", str(value))
-
-
-def ias_filename(trial_id: str) -> str:
-    """A file name for a trial's interest-area set, safe on any file system."""
-    stem = _UNSAFE_NAME.sub("_", trial_id).strip("._") or "trial"
-    return f"{stem}.ias"
 
 
 def ias_text(areas: Sequence[InterestArea]) -> str:
