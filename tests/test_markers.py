@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from readsync.markers import EYELINK_MESSAGE_LIMIT, EyeLinkMarkerSink, Marker
 
 
@@ -45,8 +47,6 @@ def test_eyelink_sink_caps_the_message_length() -> None:
 
 
 def test_multi_sink_sends_each_marker_to_every_sink_in_order() -> None:
-    import pytest
-
     from readsync.markers import MultiMarkerSink, NullMarkerSink
 
     calls: list[str] = []
@@ -66,3 +66,35 @@ def test_multi_sink_sends_each_marker_to_every_sink_in_order() -> None:
     assert first.markers == second.markers
     with pytest.raises(ValueError):
         MultiMarkerSink()
+
+
+def test_lsl_sink_opens_its_outlet_before_the_first_marker(monkeypatch: pytest.MonkeyPatch) -> None:
+    import sys
+    import types
+
+    from readsync.markers import LSLMarkerSink
+
+    created: list[object] = []
+
+    class _Outlet:
+        def __init__(self, info: object) -> None:
+            self.info = info
+            self.samples: list[list[str]] = []
+            created.append(self)
+
+        def wait_for_consumers(self, timeout: float) -> bool:
+            return timeout > 0
+
+        def push_sample(self, sample: list[str]) -> None:
+            self.samples.append(sample)
+
+    fake = types.ModuleType("pylsl")
+    fake.StreamInfo = lambda *args: args  # type: ignore[attr-defined]
+    fake.StreamOutlet = _Outlet  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "pylsl", fake)
+
+    sink = LSLMarkerSink(stream_name="test-markers")
+    assert len(created) == 1  # the stream exists before any marker is sent
+    assert sink.wait_for_recorder(1.0)
+    sink.send(Marker("passage_onset", 0.0, {"passage": "p1"}))
+    assert created[0].samples == [["passage_onset passage=p1"]]  # type: ignore[attr-defined]

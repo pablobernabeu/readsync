@@ -81,33 +81,38 @@ class LSLMarkerSink:
     """Send markers on a Lab Streaming Layer outlet for EEG co-registration.
 
     Lab Streaming Layer carries the marker stream over the local network to a
-    recorder that saves it alongside the EEG. It keeps working under
-    ``NetworkGuard`` because ``pylsl`` binds the native ``liblsl`` library,
-    whose sockets bypass the Python socket layer that the guard patches.
-    ``pylsl`` is imported only when the first marker is sent, so this module
-    imports without it. The sink has not yet been tested with pylsl.
+    recorder that saves it alongside the EEG. The outlet is created when the
+    sink is constructed, so the stream can be selected in the recorder before
+    the session starts, and :meth:`wait_for_recorder` confirms that one has
+    connected. Markers pushed before a recorder connects are not delivered.
+    The sink keeps working under ``NetworkGuard`` because ``pylsl`` binds the
+    native ``liblsl`` library, whose sockets bypass the Python socket layer
+    that the guard patches. ``pylsl`` is imported only when a sink is created,
+    so this module imports without it.
     """
 
     def __init__(self, *, stream_name: str = "readsync-markers") -> None:
         self.stream_name = stream_name
-        self._outlet: object | None = None
+        try:
+            from pylsl import StreamInfo, StreamOutlet
+        except ImportError as exc:
+            raise RuntimeError(
+                "pylsl is not installed. Install the 'lsl' extra to send EEG "
+                "markers, or use NullMarkerSink."
+            ) from exc
+        info = StreamInfo(stream_name, "Markers", 1, 0, "string", stream_name)
+        self._outlet: Any = StreamOutlet(info)
 
-    def _ensure_outlet(self) -> object:  # pragma: no cover - hardware path
-        if self._outlet is None:
-            try:
-                from pylsl import StreamInfo, StreamOutlet
-            except ImportError as exc:
-                raise RuntimeError(
-                    "pylsl is not installed. Install the 'lsl' extra to send EEG "
-                    "markers, or use NullMarkerSink."
-                ) from exc
-            info = StreamInfo(self.stream_name, "Markers", 1, 0, "string", self.stream_name)
-            self._outlet = StreamOutlet(info)
-        return self._outlet
+    def wait_for_recorder(self, timeout: float) -> bool:
+        """Wait up to ``timeout`` seconds for a recorder to connect.
 
-    def send(self, marker: Marker) -> None:  # pragma: no cover - hardware path
-        outlet = self._ensure_outlet()
-        outlet.push_sample([marker.message()])  # type: ignore[attr-defined]
+        Returns whether one is connected. Call it before the session starts, so
+        the first markers are not lost.
+        """
+        return bool(self._outlet.wait_for_consumers(timeout))
+
+    def send(self, marker: Marker) -> None:
+        self._outlet.push_sample([marker.message()])
 
 
 class EyeLinkMarkerSink:
