@@ -478,3 +478,84 @@ def test_a_tracker_frame_that_differs_from_the_window_is_refused(tmp_path: Path)
     )
     with pytest.raises(ValueError, match="would not line up"):
         session.run([Passage(id="p1", text="a")])
+
+
+class _Recorder(NullTracker):
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls: list[str] = []
+
+    def connect(self) -> None:
+        self.calls.append("connect")
+
+    def close(self) -> None:
+        self.calls.append("close")
+
+
+def test_a_passage_that_does_not_fit_fails_before_the_tracker_connects(tmp_path: Path) -> None:
+    import pytest
+
+    class _Windowed(HeadlessPresenter):
+        size = (400, 300)
+
+    tracker = _Recorder()
+    session = ReadingSession(
+        participant="p",
+        tracker=tracker,
+        presenter=_Windowed(),
+        log=EventLog(tmp_path / "s.log", key=new_data_key()),
+        layout=FixedWidthLayout(x0=100, y0=100, char_width=16, max_chars_per_line=40),
+    )
+    with pytest.raises(ValueError, match="outside the 400x300 window"):
+        session.run([Passage(id="p1", text="a fairly long sentence that runs off the side")])
+    assert tracker.calls == []
+
+
+def test_the_tracker_is_closed_when_the_log_cannot_be_synced(tmp_path: Path) -> None:
+    import pytest
+
+    class _FailingLog(EventLog):
+        def sync(self) -> None:
+            raise OSError("disk full")
+
+    tracker = _Recorder()
+    session = ReadingSession(
+        participant="p",
+        tracker=tracker,
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=_FailingLog(tmp_path / "s.log", key=new_data_key()),
+    )
+    with pytest.raises(OSError, match="disk full"):
+        session.run([Passage(id="p1", text="a")])
+    assert tracker.calls == ["connect", "close"]
+
+
+def test_a_reported_drift_status_decides_whether_a_recalibration_is_logged(
+    tmp_path: Path,
+) -> None:
+    class _Status(_CheckedTracker):
+        def __init__(self) -> None:
+            super().__init__()
+            self.last_drift_status: int | None = None
+
+        def drift_correct(self) -> float | None:
+            self.drift_calls += 1
+            # A successful check whose error could not be read.
+            self.last_drift_status = 0
+            return None
+
+        def describe(self) -> dict[str, object]:
+            return {"backend": "test"}
+
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p",
+        tracker=_Status(),
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=log,
+    )
+    session.run([Passage(id="p1", text="a")])
+    events = log.events()
+    assert [e["type"] for e in events].count("calibration") == 1
+    assert next(e for e in events if e["type"] == "drift_check")["status"] == 0
+    assert next(e for e in events if e["type"] == "session_start")["tracker"] == {"backend": "test"}

@@ -294,15 +294,22 @@ class ReadingSession:
         if drift is None:
             return
         error = drift()
-        self.log.append(
-            {"type": "drift_check", "t": self._now(), "passage": passage_id, "error": error}
-        )
-        # A drift check that was aborted or escalated into a recalibration
-        # reports no error. Its calibration outcome is logged then, and also
-        # whenever the tracker's message changes, so every recalibration shows
-        # in the quality report even when its message repeats an earlier one.
+        event: dict[str, object] = {
+            "type": "drift_check", "t": self._now(), "passage": passage_id, "error": error
+        }
+        # A tracker may report the check's status, non-zero when it was aborted
+        # or escalated into a recalibration. Without one, a check that reports
+        # no error is taken to have been aborted or escalated.
+        status = getattr(self.tracker, "last_drift_status", None)
+        if status is not None:
+            event["status"] = status
+        self.log.append(event)
+        escalated = status != 0 if status is not None else error is None
+        # The calibration outcome is logged after an escalated check and whenever
+        # the tracker's message changes, so every recalibration shows in the
+        # quality report even when its message repeats an earlier one.
         message = getattr(self.tracker, "last_calibration_message", None)
-        if message is not None and (error is None or str(message) != self._last_calibration):
+        if message is not None and (escalated or str(message) != self._last_calibration):
             self._last_calibration = str(message)
             self.log.append(
                 {"type": "calibration", "t": self._now(), "detail": self._last_calibration}
@@ -343,7 +350,36 @@ class ReadingSession:
         now = getattr(self.presenter, "now", None)
         return float(now()) if now is not None else None
 
-    def _run_item(self, item: StimulusItem) -> None:
+    def _lay_out(self, items: list[StimulusItem]) -> list[list[InterestArea]]:
+        """Lay out every passage before the tracker connects.
+
+        A word too long for a line, or a passage that does not fit the
+        presenter's window, then fails before the participant is calibrated.
+        """
+        size = getattr(self.presenter, "size", None)
+        layouts = []
+        for item in items:
+            areas = interest_areas(item.passage.words, self.layout)
+            if size is not None:
+                for area in areas:
+                    if area.x1 < 0 or area.y1 < 0 or area.x2 > size[0] or area.y2 > size[1]:
+                        raise ValueError(
+                            f"passage {item.passage.id!r}: the word {area.word.text!r} falls "
+                            f"outside the {size[0]}x{size[1]} window"
+                        )
+            layouts.append(areas)
+        return layouts
+
+    def _describe(self) -> dict[str, object]:
+        """The settings that the tracker and presenter report, for the record."""
+        settings: dict[str, object] = {}
+        for name, part in (("tracker", self.tracker), ("presenter", self.presenter)):
+            describe = getattr(part, "describe", None)
+            if describe is not None:
+                settings[name] = describe()
+        return settings
+
+    def _run_item(self, item: StimulusItem, areas: list[InterestArea]) -> None:
         """Run one item as one tracker trial.
 
         The order follows SR Research's trial structure: the trial is opened,
@@ -351,7 +387,6 @@ class ReadingSession:
         passage only, and the trial is closed after the questions.
         """
         passage = item.passage
-        areas = interest_areas(passage.words, self.layout)
         begin_trial = getattr(self.tracker, "begin_trial", None)
         if begin_trial is not None:
             begin_trial(passage.id, areas)
@@ -387,45 +422,59 @@ class ReadingSession:
                 f"frame but the presenter's window is {window_size[0]}x{window_size[1]}, "
                 "so gaze would not line up with the words"
             )
+        layouts = self._lay_out(items)
         session_id = uuid.uuid4().hex
-        self.tracker.connect()
-        self.tracker.calibrate()
-        calibration = getattr(self.tracker, "last_calibration_message", None)
-        if calibration is not None:
-            self._last_calibration = str(calibration)
-            self.log.append(
-                {"type": "calibration", "t": self._now(), "detail": self._last_calibration}
-            )
-        self.log.append(
-            {
-                "type": "session_start",
-                "t": self._now(),
-                "participant": self.participant,
-                "session": session_id,
-                "planned": [item.passage.id for item in items],
-            }
-        )
         end: dict[str, object] = {"status": "aborted"}
+        started = False
         try:
-            for item in items:
-                self._run_item(item)
+            # Reading the clock opens a presenter's window, so its size is
+            # checked before the tracker connects.
+            self._now()
+            self.tracker.connect()
+            self.tracker.calibrate()
+            calibration = getattr(self.tracker, "last_calibration_message", None)
+            if calibration is not None:
+                self._last_calibration = str(calibration)
+                self.log.append(
+                    {"type": "calibration", "t": self._now(), "detail": self._last_calibration}
+                )
+            self.log.append(
+                {
+                    "type": "session_start",
+                    "t": self._now(),
+                    "participant": self.participant,
+                    "session": session_id,
+                    "planned": [item.passage.id for item in items],
+                    **self._describe(),
+                }
+            )
+            started = True
+            for item, areas in zip(items, layouts, strict=True):
+                self._run_item(item, areas)
             end = {"status": "completed"}
         except BaseException as exc:
             end["error"] = type(exc).__name__
             raise
         finally:
-            self.log.append(
-                {
-                    "type": "session_end",
-                    "t": self._now(),
-                    "participant": self.participant,
-                    "session": session_id,
-                    **end,
-                }
-            )
-            self.log.sync()
-            self.tracker.close()
-            self.presenter.close()
+            # Each step runs even if an earlier one fails, so the tracker's data
+            # file is closed and received whatever happened to the log.
+            try:
+                if started:
+                    self.log.append(
+                        {
+                            "type": "session_end",
+                            "t": self._now(),
+                            "participant": self.participant,
+                            "session": session_id,
+                            **end,
+                        }
+                    )
+                self.log.sync()
+            finally:
+                try:
+                    self.tracker.close()
+                finally:
+                    self.presenter.close()
         return SessionResult(
             participant=self.participant,
             session_id=session_id,
