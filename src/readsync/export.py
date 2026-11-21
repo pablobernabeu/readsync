@@ -11,6 +11,7 @@ file, can be assigned to the same boxes.
 from __future__ import annotations
 
 import csv
+import json
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -41,15 +42,20 @@ def _columns(events: Sequence[dict[str, Any]]) -> list[str]:
     return preferred + rest
 
 
+def _cell(value: Any) -> Any:
+    """Lists and mappings, such as the planned passages, are written as JSON."""
+    return json.dumps(value) if isinstance(value, (list, dict)) else value
+
+
 def events_to_csv(events: Sequence[dict[str, Any]], path: str | Path) -> Path:
-    """Write a list of event dicts to a tidy CSV and return the path."""
+    """Write a list of event dicts to a CSV, one row per event, and return the path."""
     out = Path(path)
     out.parent.mkdir(parents=True, exist_ok=True)
     cols = _columns(events)
     with out.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
         writer.writeheader()
-        writer.writerows(events)
+        writer.writerows({k: _cell(v) for k, v in event.items()} for event in events)
     return out
 
 

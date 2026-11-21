@@ -76,3 +76,12 @@ def test_interest_areas_export_one_row_per_word_with_regions(tmp_path: Path) -> 
     )
     assert rows[3]["line"] == "1"  # 'on' wraps to the second line
     assert rows[6]["region"] == ""
+
+
+def test_lists_are_exported_as_json(tmp_path: Path) -> None:
+    import json
+
+    out = events_to_csv([{"type": "session_start", "planned": ["p1", "p 2"]}], tmp_path / "s.csv")
+    with out.open(encoding="utf-8", newline="") as fh:
+        row = next(csv.DictReader(fh))
+    assert json.loads(row["planned"]) == ["p1", "p 2"]
