@@ -10,7 +10,7 @@ Reading materials are JSON files in which a passage can carry multi-word regions
 
 `ReadingSession` runs each passage as one tracker trial. It runs the drift check, records the passage while emitting word and region events from the gaze, asks the questions and closes the trial. Passages are presented with PsychoPy (Peirce et al., 2019), and the EyeLink is controlled through SR Research's pylink. Trackers, presenters and marker sinks are small protocols, so another device can be added without changing the session. By default, the session runs under a guard that blocks outbound network connections from Python code.
 
-After a session, the log can be exported as a CSV with one row per event, and the word interest areas as a CSV with one row per word and its annotated region. The EyeLink backend also opens and closes a trial in the data file for each passage and writes the passage's word boxes as an EyeLink Data Viewer interest-area set, so a recording opened in Data Viewer is segmented by passage and carries the same boxes as the session. A quality report summarises the polled gaze, the calibration and drift checks and the comprehension responses. Fixation-level analysis is left to tools that read the EyeLink data file, such as Data Viewer or, after conversion to ASC, [Eyekit](https://github.com/jwcarr/eyekit).
+After a session, the log can be exported as a CSV with one row per event, and the word interest areas as a CSV with one row per word and its annotated region. The EyeLink backend also opens and closes a trial in the data file for each passage and writes the passage's word boxes as an EyeLink Data Viewer interest-area set, so a recording opened in Data Viewer is segmented by passage and carries the same boxes as the session. A quality report summarises the gaze polled during each passage, including the share of expected samples that never arrived, the calibration and drift checks and the comprehension responses. Fixation-level analysis is left to tools that read the EyeLink data file, such as Data Viewer or, after conversion to ASC, [Eyekit](https://github.com/jwcarr/eyekit).
 
 The webcam module estimates gaze from a laptop camera with MediaPipe's FaceLandmarker and a calibration model that accounts for head pose, and it marks gaze invalid during blinks. It implements the same tracker protocol, and [`examples/webcam_live_demo.py`](examples/webcam_live_demo.py) runs it end to end. Webcam gaze is coarser and noisier than infrared tracking. In a comparison with an EyeLink 1000, a webcam system erred by 1.45° on average against the EyeLink's 0.91° (Kaduk et al., 2024), whereas the text of a laboratory reading study set in Consolas had about three letters per degree (Rayner et al., 2010). Word-frequency effects have nonetheless been recovered from webcam recordings of reading in very large print (Serrano-Carot et al., 2026). The module therefore serves method development and coarse measures. A browser version of it runs at https://interlexis.web.app, with the code in [`web-demo/`](web-demo).
 
@@ -68,12 +68,14 @@ from readsync import (
 )
 
 tracker = EyeLinkTracker(edf_name="s01", receive_to="data/s01.edf")
+eeg = LSLMarkerSink()
+eeg.wait_for_recorder(timeout=60)   # select the stream in the EEG recorder first
 session = ReadingSession(
     participant=participant,
     tracker=tracker,
     presenter=PsychoPyPresenter(),
     log=log,
-    marker_sink=MultiMarkerSink(EyeLinkMarkerSink(tracker), LSLMarkerSink()),
+    marker_sink=MultiMarkerSink(EyeLinkMarkerSink(tracker), eeg),
 )
 ```
 
