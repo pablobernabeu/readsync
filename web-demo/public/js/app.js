@@ -24,7 +24,7 @@ const EMA_ALPHA = 0.35;
 const DRIFT_LIMIT_DEG = 12;
 const MAX_CV_ERROR = 0.06; // flag a calibration whose cross-validated error exceeds 6% of the screen
 const RIDGE = 1e-3;
-const FACE_LOST_FRAMES = 45; // consecutive camera frames without a usable signal; 1.5 s at 30 fps
+const FACE_LOST_FRAMES = 45; // consecutive detections without a usable signal
 const RESIZE_TOLERANCE = 0.03; // fraction the window may change size before gaze is untrusted
 const CALIB_HINT = "Follow the dot with your eyes.";
 
@@ -71,27 +71,52 @@ function nextFrame() {
   return new Promise((resolve) => frameWaiters.push(resolve));
 }
 
-// The detector runs once per new camera frame, not once per display refresh,
-// so a 30 fps camera on a 120 Hz display does not log each frame four times.
-// This follows MediaPipe's own web examples, which compare video.currentTime.
-let lastVideoTime = -1;
+// Detection runs once per new video frame where the browser offers
+// requestVideoFrameCallback, so a 30 fps camera on a fast display is not
+// processed several times per frame, and once per display refresh otherwise. A
+// watchdog hands waiting code a null signal when no frame has arrived for a
+// while, so the interface keeps responding if the camera stops.
+const STALL_MS = 250;
+let lastDelivery = 0;
 
-function detectLoop() {
-  if (landmarker && video.readyState >= 2 && video.currentTime !== lastVideoTime) {
-    lastVideoTime = video.currentTime;
-    try {
-      const result = landmarker.detectForVideo(video, performance.now());
-      currentSignal = signalsFromResult(result);
-    } catch {
-      // One failed detection, a non-monotonic timestamp after a tab suspend
-      // for example, counts as a missed frame and must not kill the loop.
-      currentSignal = null;
-    }
-    const waiters = frameWaiters;
-    frameWaiters = [];
-    for (const resolve of waiters) resolve(currentSignal);
+function deliver(signal) {
+  currentSignal = signal;
+  lastDelivery = performance.now();
+  const waiters = frameWaiters;
+  frameWaiters = [];
+  for (const resolve of waiters) resolve(signal);
+}
+
+function detect(timestamp) {
+  if (!landmarker || video.readyState < 2) return;
+  try {
+    deliver(signalsFromResult(landmarker.detectForVideo(video, timestamp)));
+  } catch {
+    // One failed detection, a non-monotonic timestamp after a tab suspend
+    // for example, counts as a missed frame and must not stop the loop.
+    deliver(null);
   }
-  requestAnimationFrame(detectLoop);
+}
+
+function startDetection() {
+  if (typeof video.requestVideoFrameCallback === "function") {
+    const onFrame = (now) => {
+      detect(now);
+      video.requestVideoFrameCallback(onFrame);
+    };
+    video.requestVideoFrameCallback(onFrame);
+  } else {
+    const onRefresh = (now) => {
+      detect(now);
+      requestAnimationFrame(onRefresh);
+    };
+    requestAnimationFrame(onRefresh);
+  }
+  const watchdog = () => {
+    if (frameWaiters.length && performance.now() - lastDelivery > STALL_MS) deliver(null);
+    requestAnimationFrame(watchdog);
+  };
+  requestAnimationFrame(watchdog);
 }
 
 function usable(signal) {
@@ -353,6 +378,15 @@ async function runReading(passages, model, startIndex, viewport) {
       let currentWord = -1;
       control = null;
       events.push({ type: "passage_onset", t: now(), passage: passage.id });
+      events.push({
+        type: "areas",
+        t: now(),
+        passage: passage.id,
+        detail: JSON.stringify(words.map((w) => {
+          const r = w.getBoundingClientRect();
+          return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)];
+        })),
+      });
       while (!control) {
         const signal = await nextFrame();
         clearOverlay();
@@ -409,8 +443,13 @@ async function runReading(passages, model, startIndex, viewport) {
 function downloadCsv() {
   const cols = ["type", "t", "passage", "word", "x", "y", "valid", "detail"];
   const lines = [cols.join(",")];
+  const cell = (value) => {
+    if (value === undefined) return "";
+    const text = String(value);
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
   for (const e of events) {
-    lines.push(cols.map((c) => (e[c] === undefined ? "" : e[c])).join(","));
+    lines.push(cols.map((c) => cell(e[c])).join(","));
   }
   const blob = new Blob([lines.join("\n")], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
@@ -471,7 +510,7 @@ async function run() {
   }
   if (!detectLoopStarted) {
     detectLoopStarted = true;
-    detectLoop();
+    startDetection();
   }
   sessionClock = performance.now();
   events.length = 0;
