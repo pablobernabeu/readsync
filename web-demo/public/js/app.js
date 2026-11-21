@@ -1,8 +1,8 @@
 // Browser orchestration for the Interlexis webcam reading demo. Everything runs
-// on this device: the camera frames go to MediaPipe FaceLandmarker in the
-// browser, the gaze maths (gaze.js) is the same as the desktop readsync
-// toolkit, and the event log is held in memory and only ever downloaded
-// locally. Nothing is uploaded.
+// on this device. Camera frames go to MediaPipe FaceLandmarker in the browser,
+// the gaze model (gaze.js) reproduces readsync.webcam.gaze and is checked
+// against a shared fixture, and the event log is held in memory and only
+// downloaded locally.
 
 import { FaceLandmarker, FilesetResolver } from "/vendor/vision_bundle.mjs";
 import {
@@ -22,7 +22,7 @@ const FX_RANGE = [-0.6, 1.6];
 const FY_RANGE = [-1.6, 1.6];
 const EMA_ALPHA = 0.35;
 const DRIFT_LIMIT_DEG = 12;
-const MAX_CV_ERROR = 0.06; // accept if leave-one-out error is within 6% of screen
+const MAX_CV_ERROR = 0.06; // flag a calibration whose cross-validated error exceeds 6% of the screen
 const RIDGE = 1e-3;
 const FACE_LOST_FRAMES = 45; // consecutive frames without a usable signal; ~0.75 s at 60 Hz
 const RESIZE_TOLERANCE = 0.1; // fraction the window may change before a warning

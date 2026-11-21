@@ -1,7 +1,7 @@
 // Download the MediaPipe FaceLandmarker runtime, its model and their licence
 // into public/, so the deployed site serves everything from its own origin.
-// Nothing is fetched from a third party at run time, which is what lets the
-// Content-Security-Policy stay 'self'-only and keeps the demo self-contained.
+// Nothing is fetched from a third party at run time, which lets the
+// Content-Security-Policy allow no host other than the site's own.
 //
 //   node scripts/fetch-assets.mjs
 //

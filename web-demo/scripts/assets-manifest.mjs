@@ -1,8 +1,8 @@
 // The vendored third-party assets, pinned by version and by content.
 //
-// The version is tasks-vision 0.10.35, the release the desktop toolkit was
-// developed and tested against (pyproject.toml bounds mediapipe to the same
-// 0.10 series); bump both together, never one side alone. Every entry also
+// The version is tasks-vision 0.10.35. The Python webcam extra accepts any
+// mediapipe 0.10 release (pyproject.toml), so keep both sides on the same
+// series when bumping either. Every entry also
 // carries the SHA-256 of the expected bytes, so a substituted download can
 // never be vendored or deployed: fetch-assets.mjs verifies on download and
 // check-assets.mjs re-verifies before every deploy. When bumping the version,

@@ -1,7 +1,7 @@
 // Stimulus selection for the demo. The controlled set stores both members of
 // every matched frame pair, which is right for the research materials but wrong
 // for a demo presented in file order: the reader would see each frame twice in
-// a row with one word swapped, and the second member would be fully primed.
+// a row with one word swapped, and the second member would be primed by the first.
 // The demo therefore shows one member per pair, alternating condition across
 // pairs, deterministically, so every session is comparable and both conditions
 // stay represented without adjacent near-duplicates.

@@ -1,5 +1,5 @@
 // Small dependency-free linear algebra for the calibration fits.
-// A faithful port of readsync/src/readsync/webcam/_linalg.py, so the browser
+// A faithful port of src/readsync/webcam/_linalg.py, so the browser
 // calibration behaves like the desktop one. Pure functions, unit-tested in Node.
 
 export function solve(matrix, rhs) {

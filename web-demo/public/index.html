@@ -12,25 +12,25 @@
     <header>
       <h1>Interlexis: webcam reading demo</h1>
       <p class="privacy">
-        All processing happens in your browser with your webcam. No video, gaze or
-        calibration data leaves this device, and nothing is uploaded.
+        All processing happens in your browser. No video, gaze or calibration
+        data leaves this device.
       </p>
     </header>
 
     <main>
       <section id="intro" class="screen">
         <p>
-          This is the browser benchmark strand of Interlexis, a project on reading in a
-          second language: head-pose-aware webcam gaze, running entirely on your machine.
-          It calibrates against a few on-screen dots, then shows short sentences with a
-          live gaze dot. It runs the same gaze pipeline as the
+          This demo estimates where you are looking from your webcam, taking the
+          position of your head into account, entirely on your machine. It calibrates
+          on nine dots shown at two head positions, then shows short sentences with a
+          live gaze dot. It uses the gaze model of the
           <a href="https://github.com/pablobernabeu/readsync" target="_blank"
-            rel="noopener">readsync</a> desktop toolkit, ported to the browser.
+            rel="noopener">readsync</a> toolkit, ported to the browser.
         </p>
         <p>
-          Webcam gaze is coarse. It resolves a region of a line, not a single letter.
-          Sit with the screen well lit, keep your head fairly still, and recalibrate
-          when asked.
+          Webcam gaze is much less precise than a laboratory eye-tracker, so treat the
+          dot as a rough guide to where you are looking. Sit with the screen well lit,
+          keep your head fairly still and recalibrate when asked.
         </p>
         <button id="start" class="primary">Allow camera and begin</button>
         <p id="intro-error" class="error" hidden></p>
