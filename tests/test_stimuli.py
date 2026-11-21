@@ -277,3 +277,17 @@ def test_load_passages_refuses_repeated_ids(tmp_path: Path) -> None:
     path.write_text(json.dumps([{"id": "a", "text": "x"}, {"id": "a", "text": "y"}]))
     with pytest.raises(ValueError, match="more than once"):
         load_passages(path)
+
+
+@pytest.mark.parametrize(
+    ("text", "word"),
+    [("He saw the river.", "river."), ("He saw the “river”", "river"), ("River flows.", "river")],
+)
+def test_target_word_matches_the_token_with_or_without_punctuation_or_case(
+    tmp_path: Path, text: str, word: str
+) -> None:
+    index = 3 if not text.startswith("River") else 0
+    path = tmp_path / "set.json"
+    item = {"id": "a", "text": text, "target": {"word_index": index, "word": word}}
+    path.write_text(json.dumps({"items": [item]}), encoding="utf-8")
+    assert load_stimulus_set(path).items[0].target_index == index

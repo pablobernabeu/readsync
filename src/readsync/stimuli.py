@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -37,7 +38,14 @@ from .text import Passage, Region
 
 __all__ = ["Question", "StimulusItem", "StimulusSet", "load_stimulus_set", "load_passages"]
 
-_PUNCTUATION = ".,;:!?\"'()[]{}"
+def _strip_punctuation(token: str) -> str:
+    """The token without leading or trailing punctuation, in any script."""
+    start, end = 0, len(token)
+    while start < end and unicodedata.category(token[start]).startswith("P"):
+        start += 1
+    while end > start and unicodedata.category(token[end - 1]).startswith("P"):
+        end -= 1
+    return token[start:end]
 
 
 @dataclass(frozen=True)
@@ -248,7 +256,11 @@ def _check_target(item_id: str, target: dict[str, Any], passage: Passage) -> int
             f"{len(passage.words)} words"
         )
     word = target.get("word")
-    if word is not None and passage.words[index].text.strip(_PUNCTUATION) != str(word):
+    token = passage.words[index].text
+    if word is not None and str(word).casefold() not in (
+        token.casefold(),
+        _strip_punctuation(token).casefold(),
+    ):
         raise ValueError(
             f"item {item_id!r}: target word_index {index} points at "
             f"{passage.words[index].text!r}, not {word!r}"
