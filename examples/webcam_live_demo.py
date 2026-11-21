@@ -1,29 +1,24 @@
-"""A self-contained, on-screen webcam eye-tracking test.
+"""An on-screen webcam eye-tracking demo for a laptop.
 
-This is the script to run to see the webcam path working end to end on a laptop,
-without an eye-tracker and without PsychoPy. It calibrates against on-screen
-targets, then shows reading passages with a live gaze dot and the word currently
-under gaze, and records everything to an encrypted, tamper-evident log that it
-exports to CSV. It uses the readsync library for the gaze signals, the head-aware
-calibration, the interest areas, the secure log and the export, and OpenCV only
-for the camera and the window.
+The script runs the webcam path end to end without an eye-tracker or PsychoPy. It
+calibrates against on-screen targets, shows reading passages with a live gaze dot
+and the word under it, and records everything to an encrypted, tamper-evident log
+that it exports to CSV. It uses readsync for the gaze signals, the head-aware
+calibration, the interest areas, the log and the export, and OpenCV for the
+camera and the window.
 
-What makes it dependable in use:
+The iris feature is measured in the eye's own axes, so tilting the head does not
+change it. Calibration runs at two head positions by default (set with --poses),
+so the model can learn how head yaw and pitch shift the mapping. Its error is
+estimated by cross-validation that holds out each target at every position, and
+the calibration can be redone before reading starts. While reading, the dot turns
+amber and asks for a recalibration once the head turns more than 12 degrees
+beyond the calibrated range, and during blinks the last gaze position is held.
+All events share one session clock, including across recalibrations, and each
+calibration is logged with its cross-validated error.
 
-* The iris feature is measured in the eye's own axes, so it does not break when
-  you tilt your head.
-* Calibration runs at a couple of head positions (set with --poses), so the model
-  can learn how head yaw and pitch shift the mapping and compensate for them. The
-  reading view turns the gaze amber and asks you to recalibrate once your head
-  moves beyond the range you calibrated.
-* Blinks are detected and hold the last gaze instead of throwing the dot.
-* The calibration is checked by leave-one-out cross-validation, and a poor one is
-  offered for redo before any reading starts.
-
-Expectations. Even at its best, single-camera webcam gaze is coarse, on the
-order of a degree or more of visual angle, and resolves a region of a line,
-never a single letter. Sit with the screen well lit, keep your head reasonably
-still, and recalibrate when prompted.
+Webcam gaze is coarse and noisy, so sit with the screen well lit, keep your head
+reasonably still and recalibrate when prompted.
 
 Requirements:
 
@@ -85,9 +80,9 @@ SAMPLES_PER_TARGET = 20
 FX_RANGE, FY_RANGE = (-0.6, 1.6), (-1.6, 1.6)
 # Eye-aspect ratio below this is treated as a blink; gaze is held, not updated.
 BLINK_OPENNESS = 0.15
-# Head rotation beyond this from the calibration pose is no longer trustworthy.
+# Gaze is marked invalid once the head is this far outside the calibrated range.
 DRIFT_LIMIT_DEG = 12.0
-# Accept a calibration whose leave-one-out error is within this fraction of screen.
+# Flag a calibration whose cross-validated error exceeds this fraction of the screen.
 MAX_CV_ERROR = 0.06
 # Ridge penalty for the calibration fit.
 RIDGE = 1e-3
@@ -217,12 +212,16 @@ def run_reading(
     model: HeadAwareGazeModel,
     passages: list,
     log: EventLog,
+    clock: float,
     start: int = 0,
     alpha: float = EMA_ALPHA,
 ) -> tuple[str, int]:
-    """Show passages from ``start`` with a gaze dot. Returns (status, resume index)."""
+    """Show passages from ``start`` with a gaze dot. Returns (status, resume index).
+
+    ``clock`` is the ``time.perf_counter`` value at the start of the session, so
+    times stay on one session clock across recalibrations.
+    """
     layout = FixedWidthLayout(char_width=20, line_height=54, max_chars_per_line=54, x0=90, y0=210)
-    clock = time.perf_counter()
     smoothed: tuple[float, float] | None = None
     for idx in range(start, len(passages)):
         passage = passages[idx]
@@ -325,9 +324,11 @@ def main() -> None:
         return
 
     passages = load_passages(args.stimuli)
-    key = new_data_key()
-    participant = pseudonymise("webcam-demo", key=key)
-    log = EventLog(f"data/{participant}.log", key=key)
+    # In a study, keep both keys apart from the data. Here they are generated for
+    # the demonstration only.
+    data_key = new_data_key()
+    participant = pseudonymise("webcam-demo", key=new_data_key())
+    log = EventLog(f"data/{participant}-{time.strftime('%Y%m%dT%H%M%S')}.log", key=data_key)
     estimator = MediaPipeIrisEstimator(model_path=str(args.model))
 
     cap = cv2.VideoCapture(args.camera)
@@ -339,8 +340,10 @@ def main() -> None:
     cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(WINDOW, WIDTH, HEIGHT)
 
+    clock = time.perf_counter()
+    status = "aborted"
     try:
-        log.append({"type": "session_start", "participant": participant})
+        log.append({"type": "session_start", "t": 0.0, "participant": participant})
         index = 0
         while True:
             signals: list[GazeSignals] = []
@@ -356,21 +359,27 @@ def main() -> None:
             model = HeadAwareGazeModel.fit(signals, targets, ridge=RIDGE)
             cv_error = cross_validated_error(signals, targets, ridge=RIDGE, groups=groups)
             print(f"calibration cross-validated error: {cv_error * 100:.1f}% of the screen")
-            if not confirm_calibration(cv_error):
+            accepted = confirm_calibration(cv_error)
+            log.append({"type": "calibration", "t": time.perf_counter() - clock,
+                        "detail": f"cross-validated error {cv_error:.4f} of the screen",
+                        "accepted": accepted})
+            if not accepted:
                 continue
-            status, index = run_reading(
-                cap, estimator, model, passages, log, index, args.smoothing
+            reading, index = run_reading(
+                cap, estimator, model, passages, log, clock, index, args.smoothing
             )
-            if status != "recalibrate":
+            if reading != "recalibrate":
+                status = "completed" if reading == "done" else "aborted"
                 break
     except KeyboardInterrupt:
         print("stopped early")
     finally:
-        log.append({"type": "session_end", "participant": participant})
+        log.append({"type": "session_end", "t": time.perf_counter() - clock,
+                    "participant": participant, "status": status})
         cap.release()
         cv2.destroyAllWindows()
 
-    out = log_to_csv(log, f"export/{participant}.csv")
+    out = log_to_csv(log, f"export/{log.path.stem}.csv")
     events = log.events()
     gaze = [e for e in events if e["type"] == "gaze"]
     valid = [e for e in gaze if e.get("valid")]
