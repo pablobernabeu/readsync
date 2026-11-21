@@ -1,11 +1,11 @@
 """Event markers for synchronising stimulus, eye-tracker and EEG.
 
-To align a neural or gaze record with what was on screen, the same event has to
-be timestamped in every stream. A marker is a short labelled pulse sent at a
-known moment, for example when a passage appears or when a region is first
-fixated. ``MarkerSink`` is the interface; concrete sinks send the marker to the
-eye-tracker, to an EEG amplifier over Lab Streaming Layer, or, in development, to
-an in-memory list.
+To align a gaze or EEG record with what was on screen, the same event has to be
+time-stamped in every stream. A marker is a short labelled message sent at a
+known moment, for example when a passage appears or when the gaze enters a
+region. ``MarkerSink`` is the interface. The sinks send markers to the
+eye-tracker's data file, to a Lab Streaming Layer stream for the EEG recording,
+to several sinks at once or, in development, to an in-memory list.
 """
 
 from __future__ import annotations
@@ -25,10 +25,10 @@ __all__ = [
 
 _UNSAFE = re.compile(r"[\s=]+")
 
-# The EyeLink Programmer's Guide advises keeping data-file messages short; long
-# messages are truncated by the Host PC. Capping here makes the truncation
-# explicit and deterministic instead of silent and device-dependent.
-EYELINK_MESSAGE_LIMIT = 130
+# EyeLink data-file messages have a maximum length, which PsychoPy's SR Research
+# plugin documents as 128 characters. Capping here makes any truncation explicit
+# and the same on every Host PC version.
+EYELINK_MESSAGE_LIMIT = 128
 
 
 def _token(value: Any) -> str:
@@ -80,11 +80,12 @@ class NullMarkerSink:
 class LSLMarkerSink:
     """Send markers on a Lab Streaming Layer outlet for EEG co-registration.
 
-    LSL is local inter-process transport and keeps working during an offline
-    session because ``pylsl`` binds the native ``liblsl`` library, whose
-    sockets sit outside the Python socket layer that ``NetworkGuard`` patches.
-    ``pylsl`` is imported lazily so this module imports without it. This is a
-    stub for the lab build.
+    Lab Streaming Layer carries the marker stream over the local network to a
+    recorder that saves it alongside the EEG. It keeps working under
+    ``NetworkGuard`` because ``pylsl`` binds the native ``liblsl`` library,
+    whose sockets bypass the Python socket layer that the guard patches.
+    ``pylsl`` is imported only when the first marker is sent, so this module
+    imports without it. The sink has not yet been tested with pylsl.
     """
 
     def __init__(self, *, stream_name: str = "readsync-markers") -> None:

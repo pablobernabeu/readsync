@@ -1,17 +1,16 @@
 """Eye-tracker backends behind a small common interface.
 
-The science needs a research-grade infrared tracker, but the toolkit is written
-against a ``Tracker`` protocol so that the experiment logic does not depend on a
-particular device, and so that it runs on a developer's laptop and in continuous
-integration with no hardware at all.
+The session is written against a ``Tracker`` protocol, so the experiment logic
+does not depend on a particular device and runs with no hardware at all.
 
-``NullTracker`` produces synthetic gaze and is used for development and tests.
-``EyeLinkTracker`` sketches the SR Research ``pylink`` integration, following the
-documented call sequence, configuration and data flow, so the lab build is a
-matter of installing the SDK, supplying calibration graphics and validating
-against the device. The SDK is imported lazily, so importing this module never
-requires it. New backends (for example a Tobii backend via Titta, or the webcam
-tracker in ``readsync.webcam``) implement the same protocol.
+``NullTracker`` produces synthetic gaze for development and tests and must never
+be used to collect data. ``EyeLinkTracker`` drives an SR Research EyeLink through
+pylink, following SR Research's documented call sequence. Its connection, trial,
+recording and closing calls run in pylink's dummy mode, while calibration, the
+drift check and recording still have to be validated with a tracker. pylink is
+imported only when the tracker connects, so importing this module never requires
+it. Other backends, such as the webcam tracker in ``readsync.webcam``, implement
+the same protocol.
 """
 
 from __future__ import annotations
@@ -140,15 +139,14 @@ def _gaze_from_components(
 
 
 class EyeLinkTracker:
-    """Research-grade backend over the SR Research ``pylink`` SDK.
+    """Backend for SR Research EyeLink trackers over pylink.
 
-    This sketches the device integration from the documented ``pylink`` call
-    sequence: the configuration, the calibration handshake, the link sampling
-    and the data-file transfer. Completing it in the lab means installing the
-    SDK, supplying a calibration graphics environment and validating against
-    the hardware. Every line that touches the device is marked as not covered,
-    because it cannot run without an EyeLink Host PC. The pure helpers it
-    relies on are tested.
+    It follows the documented pylink call sequence for configuration,
+    calibration, link sampling and the data-file transfer. The connection,
+    trial, recording and closing calls run in pylink's dummy mode, and a test
+    exercises them where pylink is installed. Calibration, the drift check and
+    recording with a tracker have not yet been validated. The pure helpers are
+    tested without pylink.
 
     pylink is imported lazily in :meth:`connect`, so importing this module never
     requires the SDK. The Host PC is reached over a dedicated Ethernet link at

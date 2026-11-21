@@ -1,23 +1,21 @@
 """PsychoPy presenter for running reading sessions on a real screen.
 
 ``PsychoPyPresenter`` implements the :class:`readsync.session.Presenter` protocol
-over a PsychoPy window. Each word is drawn at the centre of its interest area, so
-what the reader sees and what the analysis treats as a word region are the same
-geometry. The reader advances with a keypress.
+over a PsychoPy window. Each word is drawn centred on its interest area, and the
+reader advances with a keypress.
 
-PsychoPy is large and platform sensitive, so it is an optional dependency
-(``pip install "readsync[present]"``) and is imported lazily. This module
-therefore imports without PsychoPy or a display; only constructing and running a
-presenter needs them. Because it needs a screen, it is exercised in the lab and
-in the example script, and continuous integration covers the pure parts.
+PsychoPy is large and platform-sensitive, so it is an optional dependency
+(``pip install "readsync[present]"``) imported only when a window is opened.
+This module therefore imports without PsychoPy or a display. The drawing code
+needs a screen, so it runs in the example script, and the tests cover the
+coordinate conversion.
 
 A note on geometry. PsychoPy pixel coordinates have their origin at the centre of
 the window with the y axis pointing up, whereas interest areas use a top-left
-origin with y pointing down. :meth:`_to_psychopy` converts between them. For the
-on-screen word boxes to match the interest areas exactly, set the layout's
-``char_width`` and ``line_height`` from the chosen monospaced font's metrics; the
-defaults are a reasonable starting point that should be calibrated once per
-display and font.
+origin with y pointing down. :meth:`_to_psychopy` converts between them. The
+glyphs fill the interest areas only when the layout's ``char_width`` and
+``line_height`` match the metrics of the monospaced font at the size drawn, so
+set them from the font once per display. The defaults are a starting point.
 """
 
 from __future__ import annotations
@@ -170,9 +168,10 @@ class PsychoPyPresenter:
     def ask(self, question: Question) -> QuestionResponse:  # pragma: no cover
         """Present a yes/no question and collect the keyed response.
 
-        ``Y`` answers yes and ``N`` no. The onset is the first frame on which
-        the question was drawn, and the response time the moment the key came
-        in, both on the same session clock as the reading record.
+        ``Y`` answers yes and ``N`` no. The onset is the time just after the
+        question was first flipped on screen, and the response time is read on
+        the first frame after the key arrives, so it is resolved to one frame.
+        Both are on the same session clock as the reading record.
         """
         stim = self._text_screen(f"{question.text}\n\nY = yes        N = no")
         onset = float(self._clock.getTime())

@@ -1,14 +1,16 @@
 """Reading stimuli and word-level interest areas.
 
 Reading research measures eye movements on individual words and short regions,
-so a stimulus is not just a string. It is a sequence of words, each with a
-character span in the text and a bounding box on the screen. Those bounding
-boxes are the interest areas against which fixations are later assigned to words
-by tools such as Eyekit or popEye. This module produces them deterministically
-from a fixed-width layout, which is the standard choice for reading studies
-because it makes word boundaries exact.
+so a stimulus is a sequence of words, each with a character span in the text and
+a bounding box on the screen. Those boxes are the interest areas to which gaze
+is assigned. This module derives them deterministically from a fixed-width
+layout. Monospaced fonts are common in eye-movement studies of reading in Latin
+script, because every letter has the same width, so a word's position and extent
+follow from its character span (Rayner, Slattery & Bélanger, 2010,
+https://doi.org/10.3758/PBR.17.6.834).
 
-Coordinates are in pixels with the origin at the top-left of the text block.
+Coordinates are screen pixels with the origin at the top-left of the screen and
+y pointing down. ``FixedWidthLayout.x0`` and ``y0`` place the text block.
 """
 
 from __future__ import annotations
@@ -50,7 +52,7 @@ class Region:
     region controls for length and position. ``start`` and ``end`` are word
     indices into the passage, ``end`` exclusive. ``layer`` names the
     sub-process the region loads; the label is free text, agreed per study
-    (the bundled sets use ``decoding``, ``vocabulary`` and ``integration``).
+    (the bundled controlled sets use ``vocabulary`` and ``decoding``).
     ``role`` separates a ``target`` region from its matched ``comparison``.
     """
 

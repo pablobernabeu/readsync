@@ -56,8 +56,9 @@ def events_to_csv(events: Sequence[dict[str, Any]], path: str | Path) -> Path:
 def log_to_csv(log: EventLog, path: str | Path) -> Path:
     """Decrypt and verify ``log``, then write it to CSV.
 
-    Raises :class:`readsync.storage.IntegrityError` if the log fails its chain
-    check, so a tampered record halts the export.
+    Raises :class:`readsync.security.DecryptionError` or
+    :class:`readsync.storage.IntegrityError` if the log fails verification, so a
+    tampered log halts the export.
     """
     return events_to_csv(log.events(), path)
 

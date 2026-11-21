@@ -237,3 +237,10 @@ def test_id_with_whitespace_raises(tmp_path: Path) -> None:
     path.write_text(json.dumps([bad]), encoding="utf-8")
     with pytest.raises(ValueError, match="whitespace"):
         load_stimulus_set(path)
+
+
+def test_the_browser_demo_uses_the_bundled_frequency_set() -> None:
+    root = Path(__file__).resolve().parent.parent
+    bundled = root / "stimuli" / "controlled_freq_en.json"
+    demo = root / "web-demo" / "public" / "stimuli" / "controlled_freq_en.json"
+    assert demo.read_bytes() == bundled.read_bytes()
