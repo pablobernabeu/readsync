@@ -1,10 +1,10 @@
-"""readsync: offline-first, secure toolkit for synchronised reading experiments.
+"""readsync: a toolkit for synchronised reading experiments.
 
-readsync presents reading materials, records gaze from a research-grade
-eye-tracker, marks events for synchronisation with EEG, and stores everything
-locally under encryption. It extends PsychoPy and the established analysis
-tools; it does not replace them. See ARCHITECTURE.md for the design and
-SECURITY.md for the data-protection guarantees.
+readsync presents annotated reading materials, turns gaze into word and region
+events, sends event markers to the eye-tracker's data file and to an EEG
+recording, and keeps the session in an encrypted, tamper-evident log. It uses
+PsychoPy for presentation and leaves analysis to established tools. See
+ARCHITECTURE.md for the design and SECURITY.md for the data protection.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ from .session import (
     SessionResult,
 )
 from .stimuli import Question, StimulusItem, StimulusSet, load_passages, load_stimulus_set
-from .storage import EventLog, IntegrityError
+from .storage import EventLog, IntegrityError, recover_events
 from .text import (
     FixedWidthLayout,
     InterestArea,
@@ -73,6 +73,7 @@ __all__ = [
     # storage and export
     "EventLog",
     "IntegrityError",
+    "recover_events",
     "events_to_csv",
     "interest_areas_to_csv",
     "log_to_csv",
