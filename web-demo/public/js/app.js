@@ -24,8 +24,8 @@ const EMA_ALPHA = 0.35;
 const DRIFT_LIMIT_DEG = 12;
 const MAX_CV_ERROR = 0.06; // flag a calibration whose cross-validated error exceeds 6% of the screen
 const RIDGE = 1e-3;
-const FACE_LOST_FRAMES = 45; // consecutive frames without a usable signal; ~0.75 s at 60 Hz
-const RESIZE_TOLERANCE = 0.1; // fraction the window may change before a warning
+const FACE_LOST_FRAMES = 45; // consecutive camera frames without a usable signal; 1.5 s at 30 fps
+const RESIZE_TOLERANCE = 0.03; // fraction the window may change size before gaze is untrusted
 const CALIB_HINT = "Follow the dot with your eyes.";
 
 const $ = (id) => document.getElementById(id);
@@ -71,8 +71,14 @@ function nextFrame() {
   return new Promise((resolve) => frameWaiters.push(resolve));
 }
 
+// The detector runs once per new camera frame, not once per display refresh,
+// so a 30 fps camera on a 120 Hz display does not log each frame four times.
+// This follows MediaPipe's own web examples, which compare video.currentTime.
+let lastVideoTime = -1;
+
 function detectLoop() {
-  if (landmarker && video.readyState >= 2) {
+  if (landmarker && video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+    lastVideoTime = video.currentTime;
     try {
       const result = landmarker.detectForVideo(video, performance.now());
       currentSignal = signalsFromResult(result);
@@ -207,11 +213,15 @@ async function collectTarget(nx, ny, viewport) {
 }
 
 function viewportNow() {
-  return { w: window.innerWidth, h: window.innerHeight };
+  return { w: window.innerWidth, h: window.innerHeight, x: window.screenX, y: window.screenY };
 }
 
+// Gaze is calibrated to positions within the window, so the calibration no
+// longer holds once the window moves on the screen or changes size.
 function resizedFrom(viewport) {
   return (
+    window.screenX !== viewport.x ||
+    window.screenY !== viewport.y ||
     Math.abs(window.innerWidth - viewport.w) / viewport.w > RESIZE_TOLERANCE ||
     Math.abs(window.innerHeight - viewport.h) / viewport.h > RESIZE_TOLERANCE
   );
@@ -371,7 +381,7 @@ async function runReading(passages, model, startIndex, viewport) {
                 currentWord = highlighted;
               }
             } else if (resized) {
-              note = "the window was resized since calibration; recalibrate";
+              note = "the window was moved or resized since calibration; recalibrate";
             } else {
               note = "you have moved; recalibrate";
             }
@@ -383,8 +393,8 @@ async function runReading(passages, model, startIndex, viewport) {
         words.forEach((w, i) => w.classList.toggle("hit", i === highlighted));
         $("reading-note").textContent = note;
       }
-      if (control === "recalibrate") return { status: "recalibrate", index: idx };
       events.push({ type: "passage_offset", t: now(), passage: passage.id });
+      if (control === "recalibrate") return { status: "recalibrate", index: idx };
       if (control === "quit") return { status: "quit", index: idx };
     }
     return { status: "done", index: passages.length };
@@ -397,7 +407,7 @@ async function runReading(passages, model, startIndex, viewport) {
 }
 
 function downloadCsv() {
-  const cols = ["type", "t", "passage", "word", "x", "y", "valid"];
+  const cols = ["type", "t", "passage", "word", "x", "y", "valid", "detail"];
   const lines = [cols.join(",")];
   for (const e of events) {
     lines.push(cols.map((c) => (e[c] === undefined ? "" : e[c])).join(","));
@@ -471,7 +481,15 @@ async function run() {
     const { signals, targets, groups, viewport } = await runCalibration();
     const model = HeadAwareModel.fit(signals, targets, RIDGE);
     const cvError = crossValidatedError(signals, targets, RIDGE, groups);
-    if (!(await confirmCalibration(cvError))) continue;
+    const accepted = await confirmCalibration(cvError);
+    events.push({
+      type: "calibration",
+      t: now(),
+      detail:
+        `cv_error=${cvError.toFixed(4)} accepted=${accepted} ` +
+        `viewport=${viewport.w}x${viewport.h} dpr=${window.devicePixelRatio || 1}`,
+    });
+    if (!accepted) continue;
     setHint("Next sentence: button or SPACE. Recalibrate: button or C. Finish: button or Esc.");
     const { status, index: reached } = await runReading(passages, model, index, viewport);
     if (status === "recalibrate") {
