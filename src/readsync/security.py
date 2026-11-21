@@ -17,6 +17,7 @@ import hmac
 import ipaddress
 import socket
 import threading
+import unicodedata
 from contextlib import AbstractContextManager
 from types import TracebackType
 from typing import Any
@@ -50,9 +51,14 @@ def pseudonymise(identifier: str, *, key: bytes) -> str:
     Uses HMAC-SHA256 so that the pseudonym depends on a secret study key. The
     same identifier yields the same pseudonym within a study, which lets sessions
     be linked, while the original identifier cannot be recovered from the
-    pseudonym without the key. Store the key separately from the data, under
-    stricter access control than the data themselves.
+    pseudonym without the key. The identifier is put in Unicode NFC form and
+    stripped of surrounding whitespace first, so the same identifier typed on
+    different systems gives the same code. Case is kept, so lower-case
+    identifiers that ignore case, such as email addresses, beforehand. Store the
+    key separately from the data, under stricter access control than the data
+    themselves.
     """
+    identifier = unicodedata.normalize("NFC", identifier).strip()
     if not identifier:
         raise ValueError("identifier must be a non-empty string")
     if len(key) < 16:
@@ -180,7 +186,12 @@ class NetworkGuard(AbstractContextManager["NetworkGuard"]):
         global _SAVED_METHODS
         with _GUARD_LOCK:
             if not _ACTIVE_GUARDS:
-                _SAVED_METHODS = (socket.socket.connect, socket.socket.connect_ex)
+                current = (socket.socket.connect, socket.socket.connect_ex)
+                # If a wrapper of ours is still installed, because another
+                # patch replaced it and was later undone, keep the methods saved
+                # before it rather than saving the wrapper as the original.
+                if current[0] is not _guarded_connect or _SAVED_METHODS is None:
+                    _SAVED_METHODS = current
                 socket.socket.connect = _guarded_connect  # type: ignore[method-assign,assignment]
                 socket.socket.connect_ex = _guarded_connect_ex  # type: ignore[method-assign,assignment]
             _ACTIVE_GUARDS.append(self)

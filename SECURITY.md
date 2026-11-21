@@ -8,7 +8,7 @@ The protections below apply to the session log that `EventLog` writes. It holds 
 
 ## Pseudonymisation
 
-`pseudonymise()` derives a 16-character code from an identifier with HMAC-SHA256 under a study key. The same identifier and key always give the same code, so a participant's sessions can be linked, and the identifier cannot be recovered from the code without the key. The identifier is used exactly as given, so normalise case and whitespace before deriving codes. `ReadingSession` records whatever participant string it receives, so pass it the code and never the identifier. Keep the pseudonymisation key separate from the encryption key. `new_data_key()` generates either.
+`pseudonymise()` derives a 16-character code from an identifier with HMAC-SHA256 under a study key. The same identifier and key always give the same code, so a participant's sessions can be linked, and the identifier cannot be recovered from the code without the key. The identifier is put in Unicode NFC form and stripped of surrounding whitespace first, but its case is kept, so lower-case identifiers that ignore case, such as email addresses, beforehand. `ReadingSession` records whatever participant string it receives, so pass it the code and never the identifier. Keep the pseudonymisation key separate from the encryption key. `new_data_key()` generates either.
 
 ## Encryption at rest
 

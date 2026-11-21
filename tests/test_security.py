@@ -175,3 +175,28 @@ def test_guard_restores_the_methods_after_an_exception() -> None:
     with pytest.raises(RuntimeError), NetworkGuard():
         raise RuntimeError("boom")
     assert socket.socket.connect is original
+
+
+def test_a_wrapper_left_installed_by_another_patch_is_not_saved_as_the_original() -> None:
+    from unittest import mock
+
+    original = socket.socket.connect
+    with NetworkGuard():
+        # Another patch replaces the guard's wrapper and keeps a reference to it.
+        guarded = socket.socket.connect
+        patcher = mock.patch.object(socket.socket, "connect", guarded)
+        patcher.start()
+    patcher.stop()  # puts the guard's wrapper back after the guard has exited
+    with NetworkGuard():
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        with pytest.raises(ConnectionRefusedError):
+            sock.connect(("127.0.0.1", 9))  # loopback is allowed and must not recurse
+        sock.close()
+    assert socket.socket.connect is original
+
+
+def test_pseudonyms_ignore_unicode_form_and_surrounding_whitespace() -> None:
+    key = b"k" * 32
+    composed = "Jos" + chr(0xE9)  # e with acute accent as one code point
+    decomposed = "Jose" + chr(0x301)  # e followed by a combining acute accent
+    assert pseudonymise(composed, key=key) == pseudonymise(" " + decomposed + "\n", key=key)
