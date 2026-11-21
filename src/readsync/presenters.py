@@ -135,7 +135,17 @@ class PsychoPyPresenter:
         if self._win is not None:
             self._win.flip()
 
-    def _text_screen(self, text: str) -> None:  # pragma: no cover
+    def now(self) -> float:  # pragma: no cover
+        """The session clock, which starts when the window opens."""
+        self._ensure_window()
+        return float(self._clock.getTime())
+
+    def _text_screen(self, text: str) -> Any:  # pragma: no cover
+        """Draw a text screen, flip it on and return the stimulus.
+
+        ``flip`` clears the back buffer, so callers redraw the returned stimulus
+        before every further flip to keep the text on screen.
+        """
         self._ensure_window()
         stim = self._visual.TextStim(
             self._win,
@@ -147,11 +157,13 @@ class PsychoPyPresenter:
         stim.draw()
         self._win.flip()
         self._keyboard.clearEvents()
+        return stim
 
     def show_prompt(self, text: str) -> float:  # pragma: no cover
         """Show a question before its passage and wait for the advance key."""
-        self._text_screen(text)
+        stim = self._text_screen(text)
         while not self._keyboard.getKeys(list(self.advance_keys), waitRelease=False):
+            stim.draw()
             self._win.flip()
         return float(self._clock.getTime())
 
@@ -162,7 +174,7 @@ class PsychoPyPresenter:
         the question was drawn, and the response time the moment the key came
         in, both on the same session clock as the reading record.
         """
-        self._text_screen(f"{question.text}\n\nY = yes        N = no")
+        stim = self._text_screen(f"{question.text}\n\nY = yes        N = no")
         onset = float(self._clock.getTime())
         while True:
             keys = self._keyboard.getKeys(["y", "n"], waitRelease=False)
@@ -173,6 +185,7 @@ class PsychoPyPresenter:
                     response_time=float(self._clock.getTime()),
                     response=key.name == "y",
                 )
+            stim.draw()
             self._win.flip()
 
     def close(self) -> None:  # pragma: no cover
