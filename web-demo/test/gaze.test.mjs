@@ -54,8 +54,9 @@ function rotation4x4(yaw, pitch, roll) {
   const mul = (A, B) =>
     A.map((row, i) => B[0].map((_, j) => row.reduce((acc, _v, k) => acc + A[i][k] * B[k][j], 0)));
   const r = mul(mul(rz, ry), rx);
+  // Packed in column-major order, as MediaPipe delivers the matrix.
   const m = new Array(16).fill(0);
-  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) m[i * 4 + j] = r[i][j];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) m[j * 4 + i] = r[i][j];
   m[15] = 1;
   return m;
 }
@@ -230,4 +231,13 @@ test("the port reproduces the desktop implementation on a shared fixture", () =>
   });
   const cv = crossValidatedError(PARITY.signals, PARITY.targets, PARITY.ridge, PARITY.groups);
   assert.ok(close(cv, PARITY.cv_error, 1e-8), "cross-validated error");
+});
+
+test("head pose matches the desktop on matrices packed as MediaPipe packs them", () => {
+  PARITY.head_pose.forEach(({ packed, angles }, i) => {
+    const { yaw, pitch, roll } = headPoseFromMatrix(packed);
+    assert.ok(close(yaw, angles[0], 1e-9), `yaw[${i}]`);
+    assert.ok(close(pitch, angles[1], 1e-9), `pitch[${i}]`);
+    assert.ok(close(roll, angles[2], 1e-9), `roll[${i}]`);
+  });
 });

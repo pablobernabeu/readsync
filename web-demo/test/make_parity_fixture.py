@@ -29,7 +29,7 @@ from readsync.webcam.gaze import (  # noqa: E402
     HeadAwareGazeModel,
     cross_validated_error,
 )
-from readsync.webcam.tracker import GazeSignals  # noqa: E402
+from readsync.webcam.tracker import GazeSignals, head_pose_from_matrix  # noqa: E402
 
 RIDGE = 1e-3
 
@@ -39,6 +39,34 @@ def _lcg(seed: int):
     while True:
         state = (1103515245 * state + 12345) % 2**31
         yield state / 2**31
+
+
+def _rotation(yaw: float, pitch: float, roll: float) -> list[list[float]]:
+    """A 4x4 transform whose rotation is Rz(roll) Ry(yaw) Rx(pitch)."""
+    import math
+
+    cz, sz = math.cos(roll), math.sin(roll)
+    cy, sy = math.cos(yaw), math.sin(yaw)
+    cx, sx = math.cos(pitch), math.sin(pitch)
+    rz = [[cz, -sz, 0.0], [sz, cz, 0.0], [0.0, 0.0, 1.0]]
+    ry = [[cy, 0.0, sy], [0.0, 1.0, 0.0], [-sy, 0.0, cy]]
+    rx = [[1.0, 0.0, 0.0], [0.0, cx, -sx], [0.0, sx, cx]]
+
+    def mul(a: list[list[float]], b: list[list[float]]) -> list[list[float]]:
+        return [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+
+    r = mul(mul(rz, ry), rx)
+    return [r[0] + [0.0], r[1] + [0.0], r[2] + [0.0], [0.0, 0.0, 0.0, 1.0]]
+
+
+def _head_pose_cases() -> list[dict[str, object]]:
+    """Head-pose matrices packed as MediaPipe packs them, with the desktop angles."""
+    cases = []
+    for angles in [(0.2, -0.15, 0.1), (0.3, 0.25, 0.05), (-0.1, 0.05, -0.2)]:
+        matrix = _rotation(*angles)
+        packed = [matrix[i][j] for j in range(4) for i in range(4)]  # column-major
+        cases.append({"packed": packed, "angles": list(head_pose_from_matrix(matrix))})
+    return cases
 
 
 def build() -> dict[str, object]:
@@ -84,6 +112,7 @@ def build() -> dict[str, object]:
         "mapped": [model.map(p) for p in probes],
         "drift_degrees": [model.pose_drift_degrees(p) for p in probes],
         "cv_error": cross_validated_error(signals, targets, ridge=RIDGE, groups=groups),
+        "head_pose": _head_pose_cases(),
     }
 
 

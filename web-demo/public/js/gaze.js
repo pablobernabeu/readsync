@@ -39,11 +39,12 @@ export function eyeOpenness(landmarks, spec) {
 }
 
 export function headPoseFromMatrix(data) {
-  // Extract (yaw, pitch, roll) in radians from a 16-element 4x4 head-pose matrix
-  // (FaceLandmarker facial transformation matrix, row-major). The exact convention
-  // matters only for naming; the angles serve as head-orientation inputs and to
-  // measure drift.
-  const r = (i, j) => data[i * 4 + j];
+  // Extract (yaw, pitch, roll) in radians from the 16 packed values of
+  // FaceLandmarker's facial transformation matrix. MediaPipe packs it in column-
+  // major order, its MatrixData default, so element (i, j) is data[j * 4 + i].
+  // The Python API unpacks the same matrix into rows, so this matches
+  // readsync.webcam.tracker.head_pose_from_matrix, which the parity fixture checks.
+  const r = (i, j) => data[j * 4 + i];
   const sy = Math.hypot(r(0, 0), r(1, 0));
   if (sy > 1e-6) {
     return {
