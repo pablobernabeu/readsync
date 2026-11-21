@@ -244,3 +244,36 @@ def test_the_browser_demo_uses_the_bundled_frequency_set() -> None:
     bundled = root / "stimuli" / "controlled_freq_en.json"
     demo = root / "web-demo" / "public" / "stimuli" / "controlled_freq_en.json"
     assert demo.read_bytes() == bundled.read_bytes()
+
+
+@pytest.mark.parametrize(
+    ("items", "message"),
+    [
+        ([{"id": "a", "text": "x"}, {"id": "a", "text": "y"}], "more than once"),
+        ([{"id": "a", "text": "one two", "target": {"word_index": 2}}], "outside"),
+        ([{"id": "a", "text": "one two", "target": {"word_index": "1"}}], "integer"),
+        ([{"id": "a", "text": "one two.", "target": {"word_index": 0, "word": "two"}}], "points"),
+        ([{"id": "a", "text": "one", "words": [{"index": 3, "zipf": 4.0}]}], "outside"),
+    ],
+)
+def test_loader_refuses_inconsistent_items(
+    tmp_path: Path, items: list[dict[str, object]], message: str
+) -> None:
+    path = tmp_path / "set.json"
+    path.write_text(json.dumps({"items": items}), encoding="utf-8")
+    with pytest.raises(ValueError, match=message):
+        load_stimulus_set(path)
+
+
+def test_target_word_may_carry_punctuation_in_the_text(tmp_path: Path) -> None:
+    path = tmp_path / "set.json"
+    item = {"id": "a", "text": "one two.", "target": {"word_index": 1, "word": "two"}}
+    path.write_text(json.dumps({"items": [item]}), encoding="utf-8")
+    assert load_stimulus_set(path).items[0].target_index == 1
+
+
+def test_load_passages_refuses_repeated_ids(tmp_path: Path) -> None:
+    path = tmp_path / "set.json"
+    path.write_text(json.dumps([{"id": "a", "text": "x"}, {"id": "a", "text": "y"}]))
+    with pytest.raises(ValueError, match="more than once"):
+        load_passages(path)

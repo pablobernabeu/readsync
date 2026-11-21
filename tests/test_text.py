@@ -38,3 +38,14 @@ def test_locate_finds_the_word_under_a_point() -> None:
     found = locate(areas, 45, 10)  # inside "cat" (40..70)
     assert found is not None and found.word.text == "cat"
     assert locate(areas, 1000, 1000) is None
+
+
+def test_a_word_longer_than_a_line_is_refused() -> None:
+    import pytest
+
+    from readsync.text import FixedWidthLayout, interest_areas, tokenise
+
+    with pytest.raises(ValueError, match="fit on a line"):
+        interest_areas(
+            tokenise("a supercalifragilistic word"), FixedWidthLayout(max_chars_per_line=10)
+        )

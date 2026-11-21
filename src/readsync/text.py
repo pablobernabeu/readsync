@@ -138,6 +138,11 @@ def interest_areas(words: list[Word], layout: FixedWidthLayout) -> list[Interest
     row = 0
     for word in words:
         length = len(word.text)
+        if length > layout.max_chars_per_line:
+            raise ValueError(
+                f"word {word.text!r} has {length} characters, more than the "
+                f"{layout.max_chars_per_line} that fit on a line"
+            )
         if col > 0 and col + 1 + length > layout.max_chars_per_line:
             row += 1
             col = 0
