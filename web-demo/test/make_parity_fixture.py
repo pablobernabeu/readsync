@@ -28,6 +28,7 @@ sys.path.insert(0, str(HERE.parent.parent / "src"))
 
 from readsync.webcam.gaze import (  # noqa: E402
     HeadAwareGazeModel,
+    aggregate_signals,
     cross_validated_error,
 )
 from readsync.webcam.tracker import (  # noqa: E402
@@ -107,6 +108,38 @@ def _eye_cases() -> list[dict[str, object]]:
     return cases
 
 
+def _signal_cases(
+    eyes: list[dict[str, object]], poses: list[dict[str, object]]
+) -> dict[str, object]:
+    """A full FaceLandmarker-shaped result and a median over several signals.
+
+    The expected signals combine the two eyes and the head pose as
+    MediaPipeIrisEstimator.signals does, after MediaPipe's Python API has
+    unpacked the column-major matrix into rows.
+    """
+    results = []
+    for eye, pose in zip(eyes, poses, strict=True):
+        rx, ry = eye["right"]  # type: ignore[misc]
+        lx, ly = eye["left"]  # type: ignore[misc]
+        yaw, pitch, roll = pose["angles"]  # type: ignore[misc]
+        openness = sum(eye["openness"]) / 2  # type: ignore[arg-type]
+        results.append({
+            "points": eye["points"],
+            "packed": pose["packed"],
+            "expected": [(rx + lx) / 2, (ry + ly) / 2, yaw, pitch, roll, openness],
+        })
+    noise = _lcg(11)
+    samples = [
+        GazeSignals(*(next(noise) for _ in range(6))) for _ in range(7)
+    ]
+    median = aggregate_signals(samples)
+    return {
+        "results": results,
+        "median_samples": [vars(s) for s in samples],
+        "median": vars(median),
+    }
+
+
 def build() -> dict[str, object]:
     noise = _lcg(20260826)
     signals: list[GazeSignals] = []
@@ -137,6 +170,8 @@ def build() -> dict[str, object]:
         GazeSignals(fx=0.62, fy=0.18, yaw=0.30, pitch=0.12, roll=0.02, openness=0.28),
         GazeSignals(fx=0.15, fy=-0.35, yaw=-0.20, pitch=-0.15, roll=-0.03, openness=0.33),
     ]
+    head_pose = _head_pose_cases()
+    eyes = _eye_cases()
     return {
         "ridge": RIDGE,
         "signals": [vars(s) for s in signals],
@@ -150,8 +185,9 @@ def build() -> dict[str, object]:
         "mapped": [model.map(p) for p in probes],
         "drift_degrees": [model.pose_drift_degrees(p) for p in probes],
         "cv_error": cross_validated_error(signals, targets, ridge=RIDGE, groups=groups),
-        "head_pose": _head_pose_cases(),
-        "eyes": _eye_cases(),
+        "head_pose": head_pose,
+        "eyes": eyes,
+        "extraction": _signal_cases(eyes, head_pose),
     }
 
 
