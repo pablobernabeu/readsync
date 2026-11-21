@@ -154,21 +154,32 @@ def test_pixels_to_degrees_matches_the_arctangent() -> None:
 
 
 def test_angular_error_and_mean() -> None:
-    one = angular_error((0.0, 0.0), (10.0, 0.0), viewing_distance_mm=573.0, px_per_mm=1.0)
+    geometry = {"viewing_distance_mm": 573.0, "px_per_mm": 1.0, "eye_px": (0.0, 0.0)}
+    one = angular_error((0.0, 0.0), (10.0, 0.0), **geometry)
     assert one == pytest.approx(1.0, abs=0.01)
 
-    mean = mean_angular_error(
-        [(0.0, 0.0), (0.0, 0.0)],
-        [(10.0, 0.0), (0.0, 10.0)],
-        viewing_distance_mm=573.0,
-        px_per_mm=1.0,
-    )
+    mean = mean_angular_error([(0.0, 0.0), (0.0, 0.0)], [(10.0, 0.0), (0.0, 10.0)], **geometry)
     assert mean == pytest.approx(1.0, abs=0.01)
+
+
+def test_angular_error_accounts_for_where_the_points_lie() -> None:
+    # Two points 300 and 400 mm to the side of the line of sight at 600 mm
+    # subtend atan(400/600) - atan(300/600), not atan(100/600).
+    error = angular_error(
+        (300.0, 0.0), (400.0, 0.0), viewing_distance_mm=600.0, px_per_mm=1.0, eye_px=(0.0, 0.0)
+    )
+    expected = math.degrees(math.atan(400 / 600) - math.atan(300 / 600))
+    assert error == pytest.approx(expected, abs=1e-9)
+    # The angle is symmetric and does not depend on screen orientation.
+    vertical = angular_error(
+        (0.0, 300.0), (0.0, 400.0), viewing_distance_mm=600.0, px_per_mm=1.0, eye_px=(0.0, 0.0)
+    )
+    assert vertical == pytest.approx(expected, abs=1e-9)
 
 
 def test_mean_angular_error_rejects_empty() -> None:
     with pytest.raises(ValueError, match="at least one"):
-        mean_angular_error([], [], viewing_distance_mm=573.0, px_per_mm=1.0)
+        mean_angular_error([], [], viewing_distance_mm=573.0, px_per_mm=1.0, eye_px=(0.0, 0.0))
 
 
 def _quadratic(fx: float, fy: float) -> tuple[float, float]:
