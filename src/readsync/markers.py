@@ -25,9 +25,9 @@ __all__ = [
 
 _UNSAFE = re.compile(r"[\s=]+")
 
-# EyeLink data-file messages have a maximum length, which PsychoPy's SR Research
-# plugin documents as 128 characters. Capping here makes any truncation explicit
-# and the same on every Host PC version.
+# EyeLink data-file messages have a maximum length. pylink's documentation gives
+# 130 characters and PsychoPy's SR Research plugin 128, so markers are capped at
+# the lower figure, which makes any truncation explicit and the same everywhere.
 EYELINK_MESSAGE_LIMIT = 128
 
 
@@ -113,14 +113,13 @@ class LSLMarkerSink:
 class EyeLinkMarkerSink:
     """Route markers into the EyeLink data file for eye-record synchronisation.
 
-    The EyeLink stamps a message in the same clock as its gaze samples, so sending
-    each marker as a message is how on-screen events are aligned with the eye
-    movements during analysis. It wraps anything with a ``send_message`` method,
-    so it is decoupled from the tracker class and needs no hardware to import.
-    Markers are also kept in memory for inspection and for cross-checking against
-    the data file. Messages are capped at :data:`EYELINK_MESSAGE_LIMIT`
-    characters, because the Host PC truncates long messages; the in-memory copy
-    keeps the full marker.
+    The EyeLink stamps a message on the same clock as its gaze samples, so sending
+    each marker as a message aligns on-screen events with the eye movements in
+    the data file. The sink wraps anything with a ``send_message`` method, so it
+    needs no hardware to import or test. Markers are also kept in memory for
+    cross-checking against the data file. Messages are capped at
+    :data:`EYELINK_MESSAGE_LIMIT` characters, and the in-memory copy keeps the
+    full marker.
     """
 
     def __init__(self, tracker: Any) -> None:

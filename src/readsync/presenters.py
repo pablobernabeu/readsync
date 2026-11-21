@@ -10,7 +10,7 @@ This module therefore imports without PsychoPy or a display. The drawing code
 needs a screen, so it runs in the example script, and the tests cover the
 coordinate conversion.
 
-A note on geometry. PsychoPy pixel coordinates have their origin at the centre of
+PsychoPy pixel coordinates have their origin at the centre of
 the window with the y axis pointing up, whereas interest areas use a top-left
 origin with y pointing down. :meth:`_to_psychopy` converts between them. The
 glyphs fill the interest areas only when the layout's ``char_width`` and

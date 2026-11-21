@@ -45,15 +45,15 @@ class Word:
 
 @dataclass(frozen=True)
 class Region:
-    """A contiguous span of words annotated with the sub-process it loads.
+    """A contiguous span of words labelled with the component of reading it loads.
 
-    Reading designs manipulate multi-word regions, not only single words: a
-    region is built to load one layer of reading, and a matched comparison
+    Reading designs manipulate multi-word regions as well as single words. A
+    region is built to load one component of reading, and a matched comparison
     region controls for length and position. ``start`` and ``end`` are word
-    indices into the passage, ``end`` exclusive. ``layer`` names the
-    sub-process the region loads; the label is free text, agreed per study
-    (the bundled controlled sets use ``vocabulary`` and ``decoding``).
-    ``role`` separates a ``target`` region from its matched ``comparison``.
+    indices into the passage, with ``end`` exclusive. ``layer`` names the
+    component, as free text agreed per study (the bundled controlled sets use
+    ``vocabulary`` and ``decoding``). ``role`` separates a ``target`` region
+    from its matched ``comparison``.
     """
 
     id: str
@@ -130,7 +130,8 @@ def interest_areas(words: list[Word], layout: FixedWidthLayout) -> list[Interest
 
     The algorithm mirrors a simple reading display: words are placed with a
     single space between them, and a word that would overflow the line starts a
-    new line. Because the layout is fixed-width, each word's box is exact.
+    new line. Each word's box matches the word as drawn when ``char_width`` and
+    ``line_height`` match the font (see :mod:`readsync.presenters`).
     """
     areas: list[InterestArea] = []
     col = 0

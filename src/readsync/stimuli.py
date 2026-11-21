@@ -8,13 +8,13 @@ The format is JSON with study metadata (name, language, licence, source, citatio
 and a design note) and a list of items. Each item has an ``id`` and ``text`` and
 may carry experimental annotation: a ``condition`` label, a ``target`` word with
 its index and properties, per-word frequencies under ``words``, multi-word
-``regions`` typed by the layer of reading they load, and comprehension
-``questions`` tied to those regions. A simpler file that holds only a list of
+``regions``, each labelled with the component of reading it is built to load,
+and comprehension ``questions`` tied to those regions. A simpler file that holds only a list of
 ``{"id", "text"}`` objects, or an object with a ``"passages"`` key, is also
 accepted, so plain passage lists load too.
 
 Regions and questions are validated at load, so a span that runs past the end of
-the passage, a duplicate or malformed identifier, or a question probing an
+the passage, a duplicate or malformed identifier or a question probing an
 unknown region is caught before a session starts. Identifiers may not contain
 whitespace or ``=``, because they travel verbatim in the ``key=value`` marker
 messages sent to the eye-tracker and the EEG stream.
@@ -69,7 +69,7 @@ class StimulusItem:
     comprehension checks tied to them. ``question_position`` is ``"after"`` by
     default; ``"before"`` also shows the question text before the passage, as
     in the information-seeking condition of the OneStop corpus. ``question`` and
-    ``answer`` mirror the first question for backward compatibility.
+    ``answer`` mirror the first question, for code that expects a single one.
     """
 
     passage: Passage

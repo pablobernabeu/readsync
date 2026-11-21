@@ -1,13 +1,15 @@
 # Changelog
 
+## Unreleased
+
+Each passage now runs as one tracker trial. The drift check runs while the tracker is idle, recording covers the passage and the EyeLink backend opens and closes a trial in the data file, with the passage's word boxes as an EyeLink Data Viewer interest-area set. In 0.1.0, the drift check ran while the tracker was recording, so with an EyeLink the passages after the first would probably not have been recorded. The backend's connection, trial, recording and closing calls now run in pylink's dummy mode, and the `eyelink` extra installs SR Research's pylink from PyPI.
+
+New features include `MultiMarkerSink`, which sends markers to the EyeLink data file and Lab Streaming Layer at once, a CSV export of the word interest areas and `recover_events` for logs damaged by a crash. `EventLog` gains `sync` and `head`. Session events carry a session identifier, the planned passages, a completion status and the session clock, and the quality report shows the status and the number of planned passages. The webcam estimator can use the head-aware model in a session and marks blinks invalid.
+
+Several defects are fixed. PsychoPy question and prompt screens vanished after one frame. Overlapping offline guards could leave a session unguarded or a process permanently offline. `angular_error` overstated errors away from the centre of the screen and now needs the screen point straight ahead of the eye. The browser demo decomposed the transposed head-pose matrix. The webcam demo restarted its clock on every recalibration. EDF names with non-ASCII letters or a leading underscore were accepted.
+
+Some behaviour has changed. A session refuses a log that already holds records. For the EyeLink, `tracker_t` is now the sample's time on the Host PC clock, so it matches the EDF timestamps. EyeLink messages are capped at 128 characters. The `stimuli` extra requires wordfreq 3.1.1 or later, and the documentation has been corrected throughout to match the code.
+
 ## 0.1.0 (2026-08-26)
 
-First public release. The data-handling core runs and is tested with no
-research hardware: pseudonymisation, encryption at rest, the tamper-evident
-hash-chained event log, the offline `NetworkGuard`, word and layer-typed region
-interest areas, comprehension questions with scored responses, real-time
-session orchestration, a per-session data-quality report, and CSV export for
-the open analysis tools. The PsychoPy presenter runs full sessions on a real
-screen, the EyeLink backend sketches the SR Research integration for the lab
-build, and the webcam strand runs end to end on a laptop, with the same gaze
-pipeline ported to the browser demo at https://interlexis.web.app.
+First public release. The data-handling core runs and is tested with no research hardware: pseudonymisation, encryption at rest, the tamper-evident hash-chained event log, the offline `NetworkGuard`, word and layer-typed region interest areas, comprehension questions with scored responses, session control, a per-session data-quality report and CSV export of the event log. The release also includes a PsychoPy presenter, an EyeLink backend over pylink, webcam gaze estimation for a laptop and a browser demo of the webcam model at https://interlexis.web.app.

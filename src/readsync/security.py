@@ -41,7 +41,7 @@ class DecryptionError(Exception):
 
 class OfflineViolation(RuntimeError):
     """Raised when code attempts a network connection while a ``NetworkGuard`` is
-    active. Surfacing this as an error makes the offline guarantee enforceable."""
+    active. Raising an error makes a blocked connection visible rather than silent."""
 
 
 def pseudonymise(identifier: str, *, key: bytes) -> str:

@@ -425,9 +425,9 @@ class ReadingSession:
         :func:`readsync.stimuli.load_stimulus_set`. Region enter and exit
         markers are emitted as gaze moves through annotated regions. Where the
         presenter implements ``ask``, each item's questions are asked after its
-        passage (or shown before it, under the information-seeking regime) and
-        every response is scored and logged; with a presenter that cannot ask,
-        the questions are skipped and no response events appear.
+        passage, and under the information-seeking regime also shown before it,
+        and every response is scored and logged. With a presenter that cannot
+        ask, the questions are skipped and no response events appear.
         """
         if self.offline:
             with NetworkGuard():

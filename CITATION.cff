@@ -1,7 +1,12 @@
 cff-version: 1.2.0
 message: "If you use readsync, please cite it as below."
 type: software
-title: "readsync: offline-first, secure toolkit for synchronised reading experiments"
+title: "readsync: a toolkit for synchronised reading experiments with eye-tracking and EEG"
+abstract: >-
+  A Python toolkit for reading experiments that record eye movements and, optionally,
+  EEG markers. It presents annotated reading materials, derives word interest areas,
+  sends event markers to the eye-tracker and EEG streams and keeps an encrypted,
+  tamper-evident session log.
 authors:
   - family-names: Bernabeu
     given-names: Pablo

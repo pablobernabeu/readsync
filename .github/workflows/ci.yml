@@ -1,8 +1,5 @@
-# CI for the standalone readsync repository. While readsync lives inside the
-# monorepo this nested workflow is inert, because GitHub runs workflows only
-# from the repository root, where readsync-ci.yml covers this folder. When
-# readsync is split into its own repository this directory becomes the root and
-# this workflow takes over unchanged.
+# Lint, type-check and test the Python package on Linux and Windows, and test the
+# browser demo's gaze maths.
 name: CI
 
 on:

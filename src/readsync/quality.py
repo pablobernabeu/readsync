@@ -1,12 +1,12 @@
 """Per-session data-quality report.
 
-Recording quality should be a reported outcome, above all when sessions run
-outside a fixed laboratory: every session should leave a record of how much
-gaze was captured, how much was lost, and what the calibration and drift
-checks said. This module computes that report from the verified event log. It
-summarises the polled link stream and the logged checks; the tracker's own
-data file remains the full-rate record and is quality-checked in analysis with
-the established tools.
+Every session should leave a record of how much gaze was captured, how much
+was lost and what the calibration and drift checks reported, which are among
+the items that the minimal reporting guideline for eye-tracking research asks
+studies to report (Dunn et al., 2024, https://doi.org/10.3758/s13428-023-02187-1).
+This module computes that report from the verified event log. It summarises the
+gaze polled during each passage and the logged checks. The tracker's own data
+file remains the full-rate record.
 """
 
 from __future__ import annotations

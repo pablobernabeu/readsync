@@ -1,16 +1,14 @@
-"""Build the readsync English stimulus sets with real frequency annotations.
+"""Build the readsync English stimulus sets with Zipf frequency annotations.
 
-Run this once to regenerate the JSON stimulus files. Every frequency is a Zipf
-value, so the numbers are real and the build is reproducible, never
-hand-entered.
+The script looks up every frequency, so rebuilding with the same frequency source
+reproduces the JSON files.
 
     pip install -e ".[stimuli]"
     python stimuli/build_stimuli.py
 
-By default the Zipf values come from the wordfreq package, which is
-pip-installable and needs no licence step, so the bundled sets are development
-stand-ins. A study that has registered SUBTLEX-UK as its frequency norm rebuilds
-with the official file, which is not redistributed here:
+By default, the Zipf values come from the wordfreq package, which installs from
+PyPI without a licence agreement. A study that has registered SUBTLEX-UK as its
+frequency norm rebuilds with the official file, which is not redistributed here:
 
     python stimuli/build_stimuli.py --subtlex path/to/SUBTLEX-UK.txt
 
@@ -18,21 +16,9 @@ The file may be comma- or tab-separated and must carry a spelling column and a
 Zipf column (SUBTLEX-UK's own export does). Words absent from the file get a
 Zipf of 0.0 and a warning, so a mismatch is visible, not silent.
 
-Three sets are written next to this script:
-
-* ``controlled_freq_en.json`` is the controlled word-frequency reading set. Each
-  pair is a frame sentence that is identical except for one target word, and the
-  two target words have the same length, so frequency is the property
-  deliberately varied.
-* ``controlled_length_en.json`` is the matching word-length set: short against
-  long target words matched in frequency within a tolerance, so word length is
-  the property deliberately varied.
-* ``naturalistic_en.json`` is a small set of neutral connected-prose passages for
-  practice and for global reading measures, each with a comprehension question.
-
-The materials are original and are released under CC-BY-4.0. Recognised open
-corpora can be added through the same loader. Some carry non-commercial or
-share-alike terms and so are not bundled here. See stimuli/README.md.
+The script writes controlled_freq_en.json, controlled_length_en.json and
+naturalistic_en.json next to itself. stimuli/README.md describes the sets, their
+licence and how published corpora can be added.
 """
 
 from __future__ import annotations
@@ -141,8 +127,8 @@ CITATION = [
 
 # Matched frame pairs. Each frame is identical except for the target word, and the
 # high and low target words have the same length, so position, context and length
-# are held constant and only frequency varies. Targets sit mid-sentence, never
-# first or last, to avoid sentence-boundary effects.
+# are held constant while frequency varies. Targets sit mid-sentence, never first
+# or last, to avoid sentence-boundary effects.
 PAIRS = [
     {"pair": "p01",
      "hi": "The cook carefully poured the water into a large metal pan.",
