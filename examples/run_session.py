@@ -11,7 +11,8 @@ Requirements:
     pip install -e ".[present]"      # from the repository root: PsychoPy and a display
 
 NullTracker stands in for the eye-tracker, so the example runs on any machine
-with a screen. With an EyeLink, pass EyeLinkTracker() as the tracker and
+with a screen. With an EyeLink, open the presenter full screen at the display's
+resolution, pass EyeLinkTracker with the same screen_size as the tracker and
 EyeLinkMarkerSink(tracker) as the marker sink, so that the markers reach the
 data file. examples/webcam_session.py shows the webcam tracker in the same
 place.

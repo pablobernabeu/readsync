@@ -60,7 +60,7 @@ interest_areas_to_csv(passages, "export/interest_areas.csv", layout)
 quality_to_json(log_quality(log), f"export/{participant}-s1.quality.json")
 ```
 
-For annotated materials, load a stimulus file with `load_stimulus_set` and call `session.run_items(stim.items)`. Regions then produce enter and exit events, and each item's questions are asked and scored after its passage. With an EyeLink and an EEG recording, give the session the EyeLink backend and send its markers both to the EyeLink data file and to Lab Streaming Layer:
+For annotated materials, load a stimulus file with `load_stimulus_set` and call `session.run_items(stim.items)`. Regions then produce enter and exit events, and each item's questions are asked and scored after its passage. With an EyeLink and an EEG recording, run the presenter full screen at the display's resolution, give the EyeLink backend the same screen size and send the markers both to the EyeLink data file and to Lab Streaming Layer. On a 1920 by 1080 display, the defaults already agree:
 
 ```python
 from readsync import (
