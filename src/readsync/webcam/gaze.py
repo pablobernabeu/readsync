@@ -33,8 +33,11 @@ __all__ = [
 # yaw and pitch, and the products of head pose with the iris feature. The pose-by-
 # feature products let head pose change the gain of the feature, not only add an
 # offset, which is what a still-head calibration held at two poses needs in order to
-# fit both poses instead of averaging them. Roll is handled by the roll-invariant
-# iris feature itself.
+# fit both poses instead of averaging them. The model has no roll terms. The iris
+# feature is measured in the eye's own axes, which keeps it stable when the head
+# and eyes roll together, but a reader who rolls the head while looking at the
+# same point turns the eyes within the head, which changes the feature. Head roll
+# during reading therefore adds error that the model does not correct.
 _N_TERMS = 12
 
 

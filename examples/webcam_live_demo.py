@@ -7,8 +7,7 @@ that it exports to CSV. It uses readsync for the gaze signals, the head-aware
 calibration, the interest areas, the log and the export, and OpenCV for the
 camera and the window.
 
-The iris feature is measured in the eye's own axes, so tilting the head does not
-change it. Calibration runs at two head positions by default (set with --poses),
+Calibration runs at two head positions by default (set with --poses),
 so the model can learn how head yaw and pitch shift the mapping. Its error is
 estimated by cross-validation that holds out each target at every position, and
 the calibration can be redone before reading starts. While reading, the dot turns

@@ -513,3 +513,10 @@ def test_estimator_falls_back_to_the_iris_calibration_and_needs_one() -> None:
     )
     assert (nx, ny, confidence) == pytest.approx((0.5, 0.5, 1.0))
     assert MediaPipeIrisEstimator().estimate_from_signals(signals) is None
+
+
+def test_an_off_screen_estimate_is_clamped_and_marked_invalid() -> None:
+    tracker = _running_tracker(ScriptedEstimator((1.3, 0.5, 1.0)))
+    sample = tracker.poll(0.0)
+    assert sample is not None and not sample.valid
+    assert sample.x == pytest.approx(999)

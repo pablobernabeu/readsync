@@ -119,10 +119,12 @@ class WebcamTracker:
 
     It implements the :class:`readsync.trackers.Tracker` protocol, so it is passed
     to a :class:`~readsync.session.ReadingSession` in place of the infrared
-    tracker with no other change. Two properties keep it explicit about webcam
-    limits. It emits at most ``max_rate_hz`` samples a second, which reflects the
-    low frame rate of a webcam, and it marks a sample invalid when the estimator's
-    confidence is below ``min_confidence`` or when no gaze is returned.
+    tracker with no other change. It emits at most ``max_rate_hz`` samples a
+    second, which reflects the low frame rate of a webcam, and it marks a sample
+    invalid when the estimator's confidence is below ``min_confidence``, when the
+    estimate falls off the screen or when no gaze is returned. Each sample is
+    stamped with the time the session polled it, so the delay between the
+    camera's exposure and the estimate is not recorded.
 
     Parameters
     ----------
@@ -196,7 +198,10 @@ class WebcamTracker:
             return GazeSample(t=t, x=0.0, y=0.0, valid=False)
         nx, ny, confidence = estimate
         x, y = _to_pixels(nx, ny, self.screen_size)
-        return GazeSample(t=t, x=x, y=y, valid=confidence >= self.min_confidence)
+        # An estimate off the screen is clamped to the edge for the record but
+        # marked invalid, so it cannot land on a word near the edge.
+        on_screen = 0.0 <= nx <= 1.0 and 0.0 <= ny <= 1.0
+        return GazeSample(t=t, x=x, y=y, valid=confidence >= self.min_confidence and on_screen)
 
     def close(self) -> None:
         if self._camera is not None:
@@ -356,7 +361,7 @@ class PolynomialCalibration:
 class GazeSignals:
     """Per-frame signals for head-pose-aware gaze estimation.
 
-    ``fx`` and ``fy`` are the roll-invariant iris position within the eye. ``yaw``,
+    ``fx`` and ``fy`` are the iris position within the eye, in the eye's own axes. ``yaw``,
     ``pitch`` and ``roll`` are the head orientation in radians. ``openness`` is the
     eye-aspect ratio, which falls towards zero during a blink.
     """
@@ -421,8 +426,8 @@ class MediaPipeIrisEstimator:
 
     # Landmark indices in the 478-point model, as
     # ``(iris, corner, corner, upper lid, lower lid)`` for each eye. The feature is
-    # measured in the eye's own axes (along the corner-to-corner line and its
-    # perpendicular), which makes it invariant to head roll.
+    # measured in the eye's own axes, along the corner-to-corner line and its
+    # perpendicular.
     _RIGHT_EYE = (468, 33, 133, 159, 145)
     _LEFT_EYE = (473, 362, 263, 386, 374)
 
@@ -478,10 +483,13 @@ class MediaPipeIrisEstimator:
 
         The horizontal value is the iris projected onto the corner-to-corner axis
         and the vertical value is its projection onto the perpendicular, each
-        normalised by the matching span. Measuring in the eye's own axes makes the
-        feature invariant to head roll. Pure landmark arithmetic, so it is
-        unit-tested without a camera. A small floor on each span avoids a divide by
-        zero when the eye is closed.
+        normalised by the matching span. The feature stays the same when the head
+        and eyes roll together. It changes when the head rolls while the gaze
+        stays on one point, because the eyes then turn within the head. The
+        landmark x and y are fractions of the frame's width and height, so on a
+        non-square frame these lengths and directions are distorted by the
+        aspect ratio. A small floor on each span avoids a divide by zero when the
+        eye is closed.
         """
         iris, corner_a, corner_b, upper, lower = spec
         ax, ay = landmarks[corner_a].x, landmarks[corner_a].y
