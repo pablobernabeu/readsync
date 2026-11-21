@@ -42,3 +42,27 @@ def test_eyelink_sink_caps_the_message_length() -> None:
     assert len(tracker.messages[0]) == EYELINK_MESSAGE_LIMIT
     # The in-memory copy keeps the full marker for auditing.
     assert len(sink.markers[0].meta["passage"]) == 300
+
+
+def test_multi_sink_sends_each_marker_to_every_sink_in_order() -> None:
+    import pytest
+
+    from readsync.markers import MultiMarkerSink, NullMarkerSink
+
+    calls: list[str] = []
+
+    class _Named(NullMarkerSink):
+        def __init__(self, name: str) -> None:
+            super().__init__()
+            self.name = name
+
+        def send(self, marker: Marker) -> None:
+            calls.append(self.name)
+            super().send(marker)
+
+    first, second = _Named("eyelink"), _Named("eeg")
+    MultiMarkerSink(first, second).send(Marker("passage_onset", 0.0, {"passage": "p1"}))
+    assert calls == ["eyelink", "eeg"]
+    assert first.markers == second.markers
+    with pytest.raises(ValueError):
+        MultiMarkerSink()

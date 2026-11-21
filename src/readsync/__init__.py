@@ -9,8 +9,15 @@ SECURITY.md for the data-protection guarantees.
 
 from __future__ import annotations
 
-from .export import events_to_csv, log_to_csv
-from .markers import EyeLinkMarkerSink, LSLMarkerSink, Marker, MarkerSink, NullMarkerSink
+from .export import events_to_csv, interest_areas_to_csv, log_to_csv
+from .markers import (
+    EyeLinkMarkerSink,
+    LSLMarkerSink,
+    Marker,
+    MarkerSink,
+    MultiMarkerSink,
+    NullMarkerSink,
+)
 from .presenters import PsychoPyPresenter
 from .quality import (
     PassageQuality,
@@ -67,6 +74,7 @@ __all__ = [
     "EventLog",
     "IntegrityError",
     "events_to_csv",
+    "interest_areas_to_csv",
     "log_to_csv",
     # stimuli
     "Passage",
@@ -91,6 +99,7 @@ __all__ = [
     "Marker",
     "MarkerSink",
     "NullMarkerSink",
+    "MultiMarkerSink",
     "LSLMarkerSink",
     "EyeLinkMarkerSink",
     "WebcamTracker",

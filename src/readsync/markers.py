@@ -14,7 +14,14 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
-__all__ = ["Marker", "MarkerSink", "NullMarkerSink", "LSLMarkerSink", "EyeLinkMarkerSink"]
+__all__ = [
+    "EyeLinkMarkerSink",
+    "LSLMarkerSink",
+    "Marker",
+    "MarkerSink",
+    "MultiMarkerSink",
+    "NullMarkerSink",
+]
 
 _UNSAFE = re.compile(r"[\s=]+")
 
@@ -122,3 +129,23 @@ class EyeLinkMarkerSink:
     def send(self, marker: Marker) -> None:
         self.markers.append(marker)
         self._tracker.send_message(marker.message()[:EYELINK_MESSAGE_LIMIT])
+
+
+class MultiMarkerSink:
+    """Send each marker to several sinks, in the order given.
+
+    The session takes one sink, so this is how the same marker reaches the
+    eye-tracker's data file and the EEG stream, for example
+    ``MultiMarkerSink(EyeLinkMarkerSink(tracker), LSLMarkerSink())``. The sinks
+    are called one after another, so each later sink receives the marker
+    slightly later. Put the stream whose timing matters most first.
+    """
+
+    def __init__(self, *sinks: MarkerSink) -> None:
+        if not sinks:
+            raise ValueError("MultiMarkerSink needs at least one sink")
+        self.sinks: tuple[MarkerSink, ...] = sinks
+
+    def send(self, marker: Marker) -> None:
+        for sink in self.sinks:
+            sink.send(marker)
