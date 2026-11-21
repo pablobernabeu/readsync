@@ -124,3 +124,36 @@ def test_eyelink_call_sequence_runs_in_pylink_dummy_mode(tmp_path: Path) -> None
     tracker.end_trial({"passage": "p1"})
     tracker.close()
     assert (tmp_path / "p1.ias").exists()
+
+
+def test_eyelink_builds_calibration_graphics_from_the_connected_link() -> None:
+    from readsync.trackers import EyeLinkTracker
+
+    class _Pylink:
+        def __init__(self) -> None:
+            self.opened: list[object] = []
+
+        def openGraphicsEx(self, graphics: object) -> None:
+            self.opened.append(graphics)
+
+    class _Link(_FakeLink):
+        def doTrackerSetup(self) -> None:
+            return None
+
+        def getCalibrationMessage(self) -> str:
+            return "calibration ok"
+
+    built: list[object] = []
+
+    def factory(link: object) -> object:
+        built.append(link)
+        return ("graphics for", link)
+
+    tracker = EyeLinkTracker(graphics_factory=factory)
+    tracker._pylink = _Pylink()
+    tracker._link = _Link()
+    tracker.calibrate()
+    tracker.calibrate()  # graphics are opened once per connection
+    assert built == [tracker._link]
+    assert tracker._pylink.opened == [("graphics for", tracker._link)]
+    assert tracker.last_calibration_message == "calibration ok"

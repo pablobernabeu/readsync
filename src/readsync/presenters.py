@@ -45,6 +45,8 @@ class PsychoPyPresenter:
         Keys that end a passage. Defaults to the space bar.
     background, text_color:
         Colours, named or as PsychoPy colour values.
+    monitor:
+        The name of the PsychoPy monitor profile.
     """
 
     def __init__(
@@ -132,6 +134,16 @@ class PsychoPyPresenter:
         self._stims = []
         if self._win is not None:
             self._win.flip()
+
+    @property
+    def window(self) -> Any:  # pragma: no cover
+        """The PsychoPy window, opened on first use.
+
+        Pass it to an EyeLink calibration graphics environment so that
+        calibration is drawn in the same window as the passages.
+        """
+        self._ensure_window()
+        return self._win
 
     def now(self) -> float:  # pragma: no cover
         """The session clock, which starts when the window opens."""

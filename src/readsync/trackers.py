@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
@@ -179,10 +179,14 @@ class EyeLinkTracker:
         Local path for the fetched data file. Defaults to ``edf_name`` in the
         working directory.
     graphics:
-        The calibration graphics environment. The lab build passes an
-        ``EyeLinkCoreGraphicsPsychoPy`` instance so calibration is drawn in the
-        same PsychoPy window as the experiment. When ``None``, the SDK's built-in
-        graphics are used.
+        A ready-made calibration graphics environment. When neither this nor
+        ``graphics_factory`` is given, pylink's built-in graphics are used.
+    graphics_factory:
+        Called with the connected pylink ``EyeLink`` object to build the
+        calibration graphics, because SR Research's PsychoPy graphics class needs
+        that object. To calibrate in the experiment's own window, pass
+        ``lambda link: EyeLinkCoreGraphicsPsychoPy(link, presenter.window)``,
+        with the class from SR Research's PsychoPy examples.
     dummy:
         Connect in no-tracker simulation mode for a wiring check with no hardware.
     interest_area_files:
@@ -200,6 +204,7 @@ class EyeLinkTracker:
         edf_name: str = "readsync",
         receive_to: str | None = None,
         graphics: object | None = None,
+        graphics_factory: Callable[[Any], object] | None = None,
         dummy: bool = False,
         interest_area_files: bool = True,
     ) -> None:
@@ -210,6 +215,7 @@ class EyeLinkTracker:
         self.edf_name = _validate_edf_name(edf_name)
         self.receive_to = receive_to
         self.graphics = graphics
+        self.graphics_factory = graphics_factory
         self.dummy = dummy
         self.interest_area_files = interest_area_files
         self._pylink: Any = None
@@ -257,8 +263,11 @@ class EyeLinkTracker:
         if self._link is None:
             raise RuntimeError("connect() must be called before calibrate()")
         if not self._graphics_open:
-            if self.graphics is not None:
-                self._pylink.openGraphicsEx(self.graphics)
+            graphics = self.graphics
+            if graphics is None and self.graphics_factory is not None:
+                graphics = self.graphics_factory(self._link)
+            if graphics is not None:
+                self._pylink.openGraphicsEx(graphics)
             else:
                 self._pylink.openGraphics(self.screen_size)
             self._graphics_open = True
