@@ -120,9 +120,10 @@ class WebcamTracker:
     It implements the :class:`readsync.trackers.Tracker` protocol, so it is passed
     to a :class:`~readsync.session.ReadingSession` in place of the infrared
     tracker with no other change. It emits at most ``max_rate_hz`` samples a
-    second, which reflects the low frame rate of a webcam, and it marks a sample
-    invalid when the estimator's confidence is below ``min_confidence``, when the
-    estimate falls off the screen or when no gaze is returned. Each sample is
+    second on average, which reflects the low frame rate of a webcam, and it
+    marks a sample invalid when the estimator's confidence is below
+    ``min_confidence``, when the estimate falls off the screen or when no gaze
+    is returned. Each sample is
     stamped with the time the session polled it, so the delay between the
     camera's exposure and the estimate is not recorded. The camera read and the
     estimate run inside the session's display loop, so a slow estimate can
@@ -139,7 +140,15 @@ class WebcamTracker:
         Display size in pixels, used to scale normalised gaze to the same pixels
         as the interest areas.
     max_rate_hz:
-        The cap on emitted samples per second.
+        The cap on emitted samples per second, averaged over time. Within one
+        recording, samples are due at intervals of ``1 / max_rate_hz`` from the
+        first sample, and a poll up to a quarter of an interval early counts as
+        on time, so jitter in the display's frame times does not delay a sample
+        to the following display frame. A sample taken late leaves the schedule
+        unchanged, so the next sample can follow it after a quarter of an
+        interval, which is the minimum spacing between samples. If a poll comes
+        two intervals or more after a sample was due, the schedule starts again
+        from that poll.
     min_confidence:
         The confidence at or above which a sample is treated as valid.
     device_index:
@@ -165,7 +174,8 @@ class WebcamTracker:
         self._camera = camera
         self._min_interval = 1.0 / max_rate_hz
         self._recording = False
-        self._last_emit: float | None = None
+        self._next_due: float | None = None
+        self._last_t: float | None = None
 
     def connect(self) -> None:
         if self._camera is None:  # pragma: no cover - needs a camera
@@ -181,7 +191,8 @@ class WebcamTracker:
 
     def start_recording(self) -> None:
         self._recording = True
-        self._last_emit = None
+        self._next_due = None
+        self._last_t = None
 
     def stop_recording(self) -> None:
         self._recording = False
@@ -189,12 +200,23 @@ class WebcamTracker:
     def poll(self, t: float) -> GazeSample | None:
         if not self._recording or self._camera is None:
             return None
-        if self._last_emit is not None and (t - self._last_emit) < self._min_interval:
+        interval = self._min_interval
+        quarter = 0.25 * interval
+        if self._last_t is not None and t < self._last_t + quarter:
+            return None
+        due = self._next_due
+        if due is not None and t < due - quarter:
             return None
         frame = self._camera.read()
         if frame is None:
             return None
-        self._last_emit = t
+        self._last_t = t
+        # The next sample is due one interval after this one was due, so the
+        # average rate stays at the cap even when this one was taken late. After
+        # a gap of two intervals or more, the schedule starts again from here.
+        if due is None or t - due >= 2 * interval:
+            due = t
+        self._next_due = max(due + interval, t + quarter)
         estimate = self.estimator.estimate(frame)
         if estimate is None:
             return GazeSample(t=t, x=0.0, y=0.0, valid=False)

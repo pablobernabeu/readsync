@@ -107,6 +107,73 @@ def test_emission_is_throttled_to_the_max_rate() -> None:
     assert tracker.poll(0.10) is not None  # a full interval on, it emits again
 
 
+def test_frame_jitter_does_not_lower_the_rate() -> None:
+    # A 60 Hz display with frame times up to 1 ms early or late, polled for one
+    # second at a 30 Hz cap. Every second frame should give a sample, including
+    # those that arrive early.
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=30.0)
+    jitter = [0.0, 0.001, -0.001, 0.0005, -0.0008, 0.001]
+    times = [i / 60 + jitter[i % len(jitter)] for i in range(60)]
+    emitted = [i for i, t in enumerate(times) if tracker.poll(t) is not None]
+    assert emitted == list(range(0, 60, 2))
+
+
+def test_alternating_jitter_near_the_cap_keeps_the_rate() -> None:
+    # Display periods at or just above the interval, with frames alternately
+    # late and early, once locked the tracker at half the display rate.
+    for rate_hz, jitter in ((59.94, (0.002, -0.003)), (75.0, (-0.0014, 0.0014))):
+        tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=60.0)
+        n = int(10 * rate_hz)
+        times = [i / rate_hz + jitter[i % 2] for i in range(n)]
+        emitted = sum(tracker.poll(t) is not None for t in times)
+        assert emitted >= 10 * min(rate_hz, 60.0) - 10
+
+
+def test_a_cap_at_the_display_rate_takes_every_frame() -> None:
+    # A 60 Hz display with frame times up to 2 ms early or late and a 60 Hz cap.
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=60.0)
+    jitter = [0.0, 0.002, -0.002, 0.0015, -0.0018, 0.002, -0.002]
+    times = [i / 60 + jitter[i % len(jitter)] for i in range(120)]
+    assert all(tracker.poll(t) is not None for t in times)
+
+
+def test_the_rate_cap_holds_on_a_fast_display() -> None:
+    # A 144 Hz display polled for two seconds at a 30 Hz cap.
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=30.0)
+    emitted = [i for i in range(288) if tracker.poll(i / 144) is not None]
+    assert 59 <= len(emitted) <= 61
+
+
+def test_a_slightly_early_poll_counts_as_on_time() -> None:
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=10.0)
+    assert tracker.poll(0.0) is not None
+    assert tracker.poll(0.095) is not None  # due at 0.1
+
+
+def test_a_late_sample_is_not_followed_at_once() -> None:
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=10.0)
+    assert tracker.poll(0.0) is not None
+    assert tracker.poll(0.195) is not None  # due at 0.1, taken late
+    assert tracker.poll(0.2) is None  # less than a quarter of an interval after it
+    assert tracker.poll(0.3) is not None
+
+
+def test_repeated_or_earlier_poll_times_are_ignored() -> None:
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=10.0)
+    assert tracker.poll(0.0) is not None
+    assert tracker.poll(0.4) is not None
+    assert tracker.poll(0.4) is None
+    assert tracker.poll(0.39) is None
+
+
+def test_the_schedule_restarts_after_a_long_gap() -> None:
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=10.0)
+    assert tracker.poll(0.0) is not None
+    assert tracker.poll(1.0) is not None  # a poll after a gap of 1 s
+    assert tracker.poll(1.05) is None  # the next sample is due at 1.1
+    assert tracker.poll(1.1) is not None
+
+
 def test_calibrate_delegates_to_the_estimator() -> None:
     estimator = ScriptedEstimator((0.5, 0.5, 1.0))
     tracker = WebcamTracker(estimator=estimator, camera=ScriptedCamera())
