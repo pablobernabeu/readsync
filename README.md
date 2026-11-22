@@ -91,7 +91,7 @@ session = ReadingSession(
 
 ## Citing and licence
 
-If you use readsync, please cite the version you used. [CITATION.cff](CITATION.cff) gives the details. The code is released under the MIT Licence (see [LICENSE](LICENSE)). The bundled stimulus sets are released under CC BY 4.0, as each file states. When the browser demo is built, it fetches MediaPipe's runtime and model, which are licensed under Apache 2.0.
+If you use readsync, please cite the version you used. [CITATION.cff](CITATION.cff) gives the details. The code is released under the MIT Licence (see [LICENSE](LICENSE)). The bundled stimulus sets are released under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), as each file states, because their Zipf values come from wordfreq's data. Their sentences, passages and questions are also released on their own under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (see [stimuli/README.md](stimuli/README.md)). When the browser demo is built, it fetches MediaPipe's runtime and model, which are licensed under Apache 2.0.
 
 ## References
 

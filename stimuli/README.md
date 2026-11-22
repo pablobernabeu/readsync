@@ -8,17 +8,17 @@ python stimuli/build_stimuli.py --subtlex path/to/SUBTLEX-UK.txt
 
 ## Sets
 
-`controlled_freq_en.json` is a word-frequency set. The two members of each pair are the same sentence with a different target word, and the two targets have the same number of letters, so frequency is the property deliberately varied. A high-frequency target has a Zipf value of at least 4.5 and a low-frequency target at most 3.6. Each target is annotated as a one-word region with the layer `vocabulary`.
+`controlled_freq_en.json` is a word-frequency set. The two members of each pair are the same sentence with a different target word, and the two targets have the same number of letters, so frequency is the property deliberately varied. A high-frequency target has a Zipf value of at least 4.5 and a low-frequency target at most 3.6. The two targets of each pair belong to the same semantic category, such as two drinks, two buildings or two people, and the frame was written to suit both. The set has 15 pairs, and each target is annotated as a one-word region with the layer `vocabulary`.
 
-`controlled_length_en.json` is the matching word-length set. The long target in each pair has at least three letters more than the short one, and their Zipf values are no more than 0.6 apart. In every pair, the long target also has more syllables, so the set contrasts length in letters and in syllables together. Each target is annotated as a one-word region with the layer `decoding`.
+`controlled_length_en.json` is the matching word-length set. The long target in each pair has at least three letters more than the short one, and their Zipf values are no more than 0.6 apart. In every pair, the long target also has more syllables, so the set contrasts length in letters and in syllables together. The two targets of each pair are close in meaning, though only some are synonyms. The set has 17 pairs, and each target is annotated as a one-word region with the layer `decoding`.
 
-The controlled sets hold constant only what they were built to hold constant. Other properties of the chosen words, such as morphological complexity and plausibility in the frame, are not controlled, and predictability is not normed. Predictability affects reading times separately from frequency (Shain, 2024), so the targets' predictability in their frames should be normed, by cloze or with a language model, before either contrast is analysed. Some target words also occur in other pairs' sentences, which gives them extra exposure within a session, and the build prints each case. In the current sets, these are 'garden' and 'tree' in the frequency set, and 'plan' and 'building' in the length set, where 'building' is also the long target of two pairs.
+The controlled sets hold constant only what they were built to hold constant. Other properties of the chosen words, such as morphological complexity, are not controlled, and neither plausibility in the frame nor predictability has been normed. Predictability affects reading times separately from frequency (Shain, 2024), so the targets' predictability in their frames should be normed, by cloze or with a language model, before either contrast is analysed. A word read twice in a session is affected by repetition, so the build reports any target word, or an inflection of it, that occurs in the text or questions of another item in any bundled set. Compounds that contain a target, such as 'farmhouse' for 'house', are not detected. The current sets have neither.
 
 The frequency and length effects on fixation durations differ between readers. Both are larger in readers with weaker verbal skills (Kuperman & Van Dyke, 2011) and in dyslexic readers (Hawelka et al., 2010), and, measured within individuals, the length effect has proved more reliable across sessions than the frequency effect (Haller et al., 2026). The sets are small, so estimates for a single reader will be noisy.
 
 `naturalistic_en.json` holds short passages of neutral connected prose for practice and for global reading measures, each with a yes/no comprehension question and its answer. No lexical property is controlled in them, and they carry no annotated regions.
 
-The sentences, passages and questions are original and released under CC BY 4.0, as each file states. The Zipf values come from wordfreq, whose data are distributed under CC BY-SA 4.0, and each file cites it. The bundled files were built with wordfreq 3.1.1. Its changelog records no change to the data since the cited 3.0.2 release, so the values are those of that release.
+Each file is released under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), as it states, because its Zipf values come from wordfreq, whose data are distributed under that licence. The sentences, passages and questions are original and are also released on their own under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). wordfreq's English data include subtitles from OpenSubtitles and the freely available SUBTLEX-US (Brysbaert & New, 2009) and SUBTLEX-UK (van Heuven et al., 2014) lists. Each file credits these three sources and wordfreq. The licence section of wordfreq's documentation lists its other sources. The bundled files were built with wordfreq 3.1.1. Its changelog records no change to the data since the cited 3.0.2 release, so the values are those of that release.
 
 ## Format
 
@@ -37,13 +37,13 @@ pip install -e ".[stimuli]"
 python stimuli/build_stimuli.py
 ```
 
-The script writes all three files, records the frequency source in each file's `source` field, with the wordfreq version or the SUBTLEX-UK file name, and cites that source. Frequency pairs whose targets miss the thresholds, and length pairs that are too close in length or too far apart in frequency, are dropped with a message. A word missing from the frequency source is written with a null Zipf value, and a pair whose target is missing is dropped. The browser demo keeps a copy of `controlled_freq_en.json` in `web-demo/public/stimuli/`, and a test fails if the two differ, so copy the rebuilt file there too.
+The script writes all three files, records the frequency source in each file's `source` field, with the wordfreq version or the SUBTLEX-UK file name, and cites that source. Frequency pairs whose targets miss the thresholds, and length pairs that are too close in length or too far apart in frequency, are dropped with a message. A word missing from the frequency source is written with a null Zipf value, and a pair whose target is missing is dropped. A build from SUBTLEX-UK labels its files CC BY 4.0, a licence that then covers only the sentences, passages and questions, and the files ask the reader to check the export's terms before redistributing the Zipf values. The browser demo keeps a copy of `controlled_freq_en.json` in `web-demo/public/stimuli/`, and a test fails if the two differ, so copy the rebuilt file there too.
 
 ## Adding published corpora
 
 Published reading corpora load through the same functions once converted to this format. None is bundled here.
 
-Natural Stories (Futrell et al., 2021) is a set of ten English stories with self-paced reading times. It is distributed under CC BY-NC-SA 4.0, whose non-commercial and share-alike terms do not fit the MIT licence of the code or the CC BY 4.0 licence of the bundled sets, so fetch it from its repository under its own terms.
+Natural Stories (Futrell et al., 2021) is a set of ten English stories with self-paced reading times. It is distributed under CC BY-NC-SA 4.0, whose non-commercial term does not fit the MIT licence of the code or the CC BY-SA 4.0 licence of the bundled sets, so fetch it from its repository under its own terms.
 
 GECO (Cop et al., 2017) records eye movements during the reading of Agatha Christie's novel The Mysterious Affair at Styles (Cop et al., 2015). Its bilingual participants read half of the novel in their first language, Dutch, and half in English. The novel was first published in 1920 and is in the public domain in the United States, but it remains in copyright in the United Kingdom and the European Union until the end of 2046. The Dutch translation is a separate work with its own rights, so check the position in your jurisdiction before redistributing either text.
 
@@ -52,6 +52,8 @@ MECO (Siegelman et al., 2022; Kuperman et al., 2023) is a multilingual eye-track
 ## References
 
 Berzak, Y., Malmaud, J., Shubi, O., Meiri, Y., Lion, E., & Levy, R. (2025). OneStop: A 360-participant English eye tracking dataset with different reading regimes. *Scientific Data*, *12*(1), Article 1995. https://doi.org/10.1038/s41597-025-06272-2
+
+Brysbaert, M., & New, B. (2009). Moving beyond Kučera and Francis: A critical evaluation of current word frequency norms and the introduction of a new and improved word frequency measure for American English. *Behavior Research Methods*, *41*(4), 977–990. https://doi.org/10.3758/BRM.41.4.977
 
 Cop, U., Dirix, N., Drieghe, D., & Duyck, W. (2017). Presenting GECO: An eyetracking corpus of monolingual and bilingual sentence reading. *Behavior Research Methods*, *49*(2), 602–615. https://doi.org/10.3758/s13428-016-0734-0
 

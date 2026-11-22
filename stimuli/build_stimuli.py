@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import string
 import sys
 from collections.abc import Callable
@@ -43,6 +44,7 @@ LANG = "en"
 # returns None for a word the source does not contain.
 _lookup: Callable[[str], float | None] | None = None
 _source_note = "Zipf values from the wordfreq package."  # main() adds the version
+_license = "CC-BY-SA-4.0"  # main() sets it for the chosen frequency source
 _citation: list[str] = []  # set by main() for the chosen frequency source
 
 
@@ -120,13 +122,30 @@ WORDFREQ_CITATION = (
     "Frequencies: Speer, R. (2022). rspeer/wordfreq: v3.0 (Version 3.0.2) "
     "[Computer software]. Zenodo. https://doi.org/10.5281/zenodo.7199437"
 )
+# wordfreq's English data include the SUBTLEX-US and SUBTLEX-UK lists and subtitles
+# from OpenSubtitles. Its terms require that wordfreq and code derived from it
+# credit the SUBTLEX authors and make clear that SUBTLEX is freely available data,
+# and they allow the subtitle data to be used with attribution to OpenSubtitles.
+# The files credit both. SUBTLEX-UK is credited in CITATION below.
+SUBTLEX_US_CITATION = (
+    "SUBTLEX-US, freely available data included in wordfreq: Brysbaert, M., & New, B. "
+    "(2009). Moving beyond Kučera and Francis: A critical evaluation of current word "
+    "frequency norms and the introduction of a new and improved word frequency "
+    "measure for American English. Behavior Research Methods, 41(4), 977-990. "
+    "https://doi.org/10.3758/BRM.41.4.977"
+)
+OPENSUBTITLES_CREDIT = (
+    "Subtitle data included in wordfreq: OPUS OpenSubtitles 2018, from the "
+    "OpenSubtitles project, http://www.opensubtitles.org/"
+)
 SUBTLEX_CITATION = (
     "Frequencies: SUBTLEX-UK (van Heuven, Mandera, Keuleers & Brysbaert, 2014), "
     "from a locally supplied export."
 )
 CITATION = [
     WORDFREQ_CITATION,
-    "Zipf scale: van Heuven, W. J. B., Mandera, P., Keuleers, E., & Brysbaert, M. "
+    "Zipf scale and SUBTLEX-UK, freely available data: van Heuven, W. J. B., "
+    "Mandera, P., Keuleers, E., & Brysbaert, M. "
     "(2014). SUBTLEX-UK: A new and improved word frequency database for British "
     "English. Quarterly Journal of Experimental Psychology, 67(6), 1176-1190. "
     "https://doi.org/10.1080/17470218.2013.850521",
@@ -149,13 +168,13 @@ PAIRS = [
      "lo": "The cook carefully poured the brine into a large metal pan."},
     {"pair": "p02",
      "hi": "We quietly watched the river from the old wooden bridge.",
-     "lo": "We quietly watched the otter from the old wooden bridge."},
+     "lo": "We quietly watched the inlet from the old wooden bridge."},
     {"pair": "p03",
      "hi": "The farmer slowly led the horse across the muddy field.",
      "lo": "The farmer slowly led the llama across the muddy field."},
     {"pair": "p04",
-     "hi": "A tall plant stood beside the calm grey mountain lake.",
-     "lo": "A tall heron stood beside the calm grey mountain lake."},
+     "hi": "A tall guard stood beside the calm grey mountain lake.",
+     "lo": "A tall vicar stood beside the calm grey mountain lake."},
     {"pair": "p05",
      "hi": "She bought some fresh bread at the small village market.",
      "lo": "She bought some fresh swede at the small village market."},
@@ -163,32 +182,32 @@ PAIRS = [
      "hi": "A small bird sat on the fence beside the open gate.",
      "lo": "A small wren sat on the fence beside the open gate."},
     {"pair": "p07",
-     "hi": "They saw a tree at the far edge of the meadow.",
-     "lo": "They saw a fawn at the far edge of the meadow."},
+     "hi": "They saw a woman at the far edge of the meadow.",
+     "lo": "They saw a hiker at the far edge of the meadow."},
     {"pair": "p08",
-     "hi": "They slowly explored the garden behind the old stone cottage.",
-     "lo": "They slowly explored the cellar behind the old stone cottage."},
+     "hi": "They slowly explored the kitchen of the old stone cottage.",
+     "lo": "They slowly explored the parlour of the old stone cottage."},
     {"pair": "p09",
-     "hi": "The friends camped near the forest for several quiet days.",
-     "lo": "The friends camped near the lagoon for several quiet days."},
+     "hi": "The friends camped in the valley for several quiet days.",
+     "lo": "The friends camped in the ravine for several quiet days."},
     {"pair": "p10",
      "hi": "The narrow ring was made of silver and felt very cold.",
      "lo": "The narrow ring was made of cobalt and felt very cold."},
     {"pair": "p11",
-     "hi": "He slowly finished the coffee before the long meeting began.",
-     "lo": "He slowly finished the cognac before the long meeting began."},
+     "hi": "He slowly finished the coffee beside the warm fire after dinner.",
+     "lo": "He slowly finished the cognac beside the warm fire after dinner."},
     {"pair": "p12",
-     "hi": "A quick rabbit darted across the narrow forest path.",
-     "lo": "A quick marten darted across the narrow forest path."},
+     "hi": "She kept the old letter in a drawer beside her bed.",
+     "lo": "She kept the old ledger in a drawer beside her bed."},
     {"pair": "p13",
-     "hi": "He picked a ripe apple from the tall garden tree.",
-     "lo": "He picked a ripe guava from the tall garden tree."},
+     "hi": "He picked a ripe apple from the branch above his head.",
+     "lo": "He picked a ripe guava from the branch above his head."},
     {"pair": "p14",
-     "hi": "The clever monkey climbed the tall green jungle tree.",
-     "lo": "The clever gibbon climbed the tall green jungle tree."},
+     "hi": "The old doctor walked slowly back to the quiet village.",
+     "lo": "The old healer walked slowly back to the quiet village."},
     {"pair": "p15",
-     "hi": "She planted a flower beside the low garden wall.",
-     "lo": "She planted a dahlia beside the low garden wall."},
+     "hi": "They walked past the old church on their way home.",
+     "lo": "They walked past the old priory on their way home."},
 ]
 
 # Matched frame pairs for the word-length manipulation. Each frame is identical
@@ -199,23 +218,23 @@ LENGTH_PAIRS = [
      "short": "He wanted a good job after leaving the school.",
      "long": "He wanted a good career after leaving the school."},
     {"pair": "L02",
-     "short": "They discussed his pay during the long board meeting.",
-     "long": "They discussed his salary during the long board meeting."},
+     "short": "They discussed his fee during the long board meeting.",
+     "long": "They discussed his payment during the long board meeting."},
     {"pair": "L03",
-     "short": "She left her bag beside the heavy front door.",
-     "long": "She left her luggage beside the heavy front door."},
+     "short": "She left the box beside the heavy front door.",
+     "long": "She left the package beside the heavy front door."},
     {"pair": "L04",
-     "short": "The police stopped the car near the stone bridge.",
+     "short": "The police stopped the van near the stone bridge.",
      "long": "The police stopped the vehicle near the stone bridge."},
     {"pair": "L05",
-     "short": "They decided to buy the house early last spring.",
-     "long": "They decided to purchase the house early last spring."},
+     "short": "They decided to fix the roof early last spring.",
+     "long": "They decided to repair the roof early last spring."},
     {"pair": "L06",
-     "short": "She wrapped the gift in bright and shiny paper.",
-     "long": "She wrapped the present in bright and shiny paper."},
+     "short": "She phoned her dad before the long drive home.",
+     "long": "She phoned her father before the long drive home."},
     {"pair": "L07",
-     "short": "They planned a long trip to the rocky coast.",
-     "long": "They planned a long journey to the rocky coast."},
+     "short": "They booked a long trip to the rocky coast.",
+     "long": "They booked a long journey to the rocky coast."},
     {"pair": "L08",
      "short": "The teacher set a hard task for the class.",
      "long": "The teacher set a hard assignment for the class."},
@@ -223,23 +242,23 @@ LENGTH_PAIRS = [
      "short": "They agreed on a clear plan for the year.",
      "long": "They agreed on a clear strategy for the year."},
     {"pair": "L10",
-     "short": "He carried the tool across the building site.",
-     "long": "He carried the equipment across the building site."},
+     "short": "He carried the tool across the busy yard.",
+     "long": "He carried the equipment across the busy yard."},
     {"pair": "L11",
-     "short": "She spoke to the boss about the new plan.",
-     "long": "She spoke to the manager about the new plan."},
+     "short": "She spoke to the boss about the new rules.",
+     "long": "She spoke to the manager about the new rules."},
     {"pair": "L12",
-     "short": "He opened a small shop near the train station.",
-     "long": "He opened a small business near the train station."},
+     "short": "He opened a small bar near the train station.",
+     "long": "He opened a small restaurant near the train station."},
     {"pair": "L13",
-     "short": "She asked for help with the heavy wooden boxes.",
-     "long": "She asked for support with the heavy wooden boxes."},
+     "short": "She asked for help with the heavy wooden crates.",
+     "long": "She asked for support with the heavy wooden crates."},
     {"pair": "L14",
-     "short": "They had a long talk about the summer trip.",
-     "long": "They had a long conversation about the summer trip."},
+     "short": "They had a long chat about the summer holidays.",
+     "long": "They had a long conversation about the summer holidays."},
     {"pair": "L15",
-     "short": "They waited outside the store before the evening show.",
-     "long": "They waited outside the building before the evening show."},
+     "short": "They waited outside the hall before the evening show.",
+     "long": "They waited outside the theatre before the evening show."},
     {"pair": "L16",
      "short": "She explained the aim of the new research project.",
      "long": "She explained the objective of the new research project."},
@@ -254,11 +273,11 @@ LENGTH_PAIRS = [
 NATURAL = [
     {"id": "n01",
      "text": "The market opened early on Saturday. Traders arranged their fruit and "
-             "bread while the first customers walked slowly between the stalls.",
+             "cheese while the first customers walked slowly between the stalls.",
      "question": "Did the market open early on Saturday?", "answer": True},
     {"id": "n02",
      "text": "A light wind moved across the lake. Two small boats drifted near the "
-             "shore as the morning sun warmed the quiet water.",
+             "shore as the morning sun rose over the hills.",
      "question": "Were there three boats on the lake?", "answer": False},
     {"id": "n03",
      "text": "The library stayed open late during the exam season. Students filled "
@@ -269,9 +288,9 @@ NATURAL = [
              "while the buses moved slowly through the crowded evening streets.",
      "question": "Were the buses moving slowly?", "answer": True},
     {"id": "n05",
-     "text": "The old farmhouse stood at the end of a long track. Sheep grazed in the "
+     "text": "The old farm stood at the end of a long track. Sheep grazed in the "
              "fields nearby, and a thin line of smoke rose from the chimney.",
-     "question": "Were sheep grazing near the farmhouse?", "answer": True},
+     "question": "Were sheep grazing near the farm?", "answer": True},
     {"id": "n06",
      "text": "The train left the station on time. Passengers settled into their seats, "
              "watching the grey suburbs give way to open green countryside.",
@@ -297,26 +316,76 @@ def word_frequencies(text: str) -> list[dict[str, object]]:
     return [{"index": w.index, "text": w.text, "zipf": zipf(w.text)} for w in tokenise(text)]
 
 
-def report_reuse(items: list[dict[str, object]]) -> None:
-    """Print each target word that also appears in another pair's sentences.
+# Irregular forms of bundled targets, which the rules in inflections() miss.
+IRREGULAR = {"woman": {"women", "women's"}}
+
+
+def inflections(word: str) -> set[str]:
+    """A word with its regular inflections and any irregular forms listed above.
+
+    The rules cover the plural and third person (-s, -es, -ies), the possessive,
+    the past (-ed, -d, -ied) and -ing, with the final consonant doubled for
+    one-syllable words that end in a single vowel and consonant.
+    """
+    vowels = "aeiou"
+    forms = {word, word + "s", word + "'s", *IRREGULAR.get(word, set())}
+    if word.endswith(("s", "x", "z", "ch", "sh", "o")):
+        forms.add(word + "es")
+    if len(word) > 1 and word.endswith("y") and word[-2] not in vowels:
+        forms |= {word[:-1] + "ies", word[:-1] + "ied", word + "ing"}
+    elif word.endswith("ee"):
+        forms |= {word + "ing"}
+    elif word.endswith("e"):
+        forms |= {word + "d", word[:-1] + "ing"}
+    elif (
+        len(re.findall(f"[{vowels}]+", word)) == 1
+        and len(word) >= 3
+        and word[-1] not in vowels + "wxy"
+        and word[-2] in vowels
+        and word[-3] not in vowels
+    ):
+        forms |= {word + word[-1] + "ed", word + word[-1] + "ing"}
+    else:
+        forms |= {word + "ed", word + "ing"}
+    return forms
+
+
+def words_of(text: str) -> set[str]:
+    """Lower-case words of a text, with hyphenated words split into their parts."""
+    text = text.replace("\u2019", "'").replace("\u2018", "'").replace("-", " ")
+    return {w.text.strip(string.punctuation).lower() for w in tokenise(text)}
+
+
+def report_reuse(sets: list[list[dict[str, object]]]) -> int:
+    """Print each target word that appears in another item of any set.
 
     A reused word is seen more than once in a session, so its reading time is
-    affected by repetition. The build reports it rather than dropping the pair.
+    affected by repetition. A regular inflection of the target counts as the
+    same word, and an item's questions are searched along with its text. The
+    build reports reuse rather than dropping the pair. The function returns the
+    number of targets found elsewhere.
     """
-    def words(text: object) -> set[str]:
-        return {w.text.strip(string.punctuation).lower() for w in tokenise(str(text))}
+    def words(item: dict[str, object]) -> set[str]:
+        return words_of(f"{item['text']} {item.get('question', '')}")
 
-    for item in items:
-        target = item["target"]
-        assert isinstance(target, dict)
+    every = [item for items in sets for item in items]
+    found = 0
+    for item in every:
+        target = item.get("target")
+        if not isinstance(target, dict):
+            continue
         word = str(target["word"]).strip(string.punctuation).lower()
+        forms = inflections(word)
+        group = item.get("pair", item["id"])
         elsewhere = sorted(
             str(other["id"])
-            for other in items
-            if other["pair"] != item["pair"] and word in words(other["text"])
+            for other in every
+            if other.get("pair", other["id"]) != group and forms & words(other)
         )
         if elsewhere:
-            print(f"  note: target {word!r} of {item['id']} also appears in {', '.join(elsewhere)}")
+            found += 1
+            print(f"  target {word!r} of {item['id']} also appears in {', '.join(elsewhere)}")
+    return found
 
 
 def differing_index(hi: str, lo: str) -> int:
@@ -361,11 +430,10 @@ def build_controlled() -> dict[str, object]:
                 "words": word_frequencies(text),
             })
     print(f"  kept {len(items) // 2} pairs ({len(items)} items)")
-    report_reuse(items)
     return {
         "name": "Controlled word-frequency reading set (English)",
         "language": LANG,
-        "license": "CC-BY-4.0",
+        "license": _license,
         "source": f"Constructed for readsync. Target and per-word frequencies are {_source_note}",
         "citation": _citation,
         "design": "The items form matched pairs. The two members of each pair are the "
@@ -412,11 +480,10 @@ def build_length() -> dict[str, object]:
                 "words": word_frequencies(text),
             })
     print(f"  kept {len(items) // 2} pairs ({len(items)} items)")
-    report_reuse(items)
     return {
         "name": "Controlled word-length reading set (English)",
         "language": LANG,
-        "license": "CC-BY-4.0",
+        "license": _license,
         "source": f"Constructed for readsync. Target and per-word frequencies are {_source_note}",
         "citation": _citation,
         "design": "The items form matched pairs. The two members of each pair are the "
@@ -443,7 +510,7 @@ def build_naturalistic() -> dict[str, object]:
     return {
         "name": "Neutral naturalistic passages (English)",
         "language": LANG,
-        "license": "CC-BY-4.0",
+        "license": _license,
         "source": f"Constructed for readsync. Per-word frequencies are {_source_note}",
         "citation": _citation,
         "design": "Short, neutral passages of connected prose for practice and for "
@@ -470,25 +537,43 @@ def main() -> None:
         "(default: the wordfreq package)",
     )
     args = parser.parse_args()
-    global _source_note
+    global _source_note, _license, _citation
     _lookup = _subtlex_lookup(args.subtlex) if args.subtlex else _wordfreq_lookup()
     if args.subtlex:
-        _source_note = f"Zipf values from a local SUBTLEX-UK export ({args.subtlex.name})."
+        _license = "CC-BY-4.0"
+        _source_note = (
+            f"Zipf values from a local SUBTLEX-UK export ({args.subtlex.name}). The "
+            "licence covers the sentences, passages and questions. Check the terms of "
+            "the export before redistributing the Zipf values."
+        )
+        _citation = [SUBTLEX_CITATION, *CITATION[1:]]
     else:
         from importlib.metadata import version
 
-        _source_note = f"Zipf values from the wordfreq package (version {version('wordfreq')})."
-    global _citation
-    _citation = [SUBTLEX_CITATION if args.subtlex else WORDFREQ_CITATION, *CITATION[1:]]
+        _license = "CC-BY-SA-4.0"
+        _source_note = (
+            f"Zipf values from the wordfreq package (version {version('wordfreq')}), "
+            "whose data are distributed under CC BY-SA 4.0, so this file is released "
+            "under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). The "
+            "sentences, passages and questions alone are also released under CC BY 4.0 "
+            "(https://creativecommons.org/licenses/by/4.0/)."
+        )
+        _citation = [WORDFREQ_CITATION, SUBTLEX_US_CITATION, OPENSUBTITLES_CREDIT, *CITATION[1:]]
     source = f"SUBTLEX-UK ({args.subtlex.name})" if args.subtlex else "wordfreq"
     print(f"frequency source: {source}")
     print("frequency set:")
-    _write("controlled_freq_en.json", build_controlled())
+    frequency = build_controlled()
+    _write("controlled_freq_en.json", frequency)
     print("length set:")
-    _write("controlled_length_en.json", build_length())
+    length = build_length()
+    _write("controlled_length_en.json", length)
     naturalistic = build_naturalistic()
     _write("naturalistic_en.json", naturalistic)
     print(f"naturalistic set: {len(naturalistic['items'])} passages with questions")
+    print("target words in other items:")
+    sets = [frequency["items"], length["items"], naturalistic["items"]]
+    if not report_reuse(sets):
+        print("  none")
     print("wrote controlled_freq_en.json, controlled_length_en.json and naturalistic_en.json")
 
 

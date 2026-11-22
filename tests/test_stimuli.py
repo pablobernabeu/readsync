@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import string
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
-from readsync.stimuli import load_passages, load_stimulus_set
+from readsync.stimuli import StimulusItem, load_passages, load_stimulus_set
 
 _STIMULI = Path(__file__).resolve().parent.parent / "stimuli"
 _CONTROLLED = _STIMULI / "controlled_freq_en.json"
@@ -59,11 +62,11 @@ def test_plain_list_loads_as_unannotated_set(tmp_path: Path) -> None:
 
 def test_controlled_set_is_a_clean_frequency_manipulation() -> None:
     stim = load_stimulus_set(_CONTROLLED)
-    assert stim.license == "CC-BY-4.0"
+    assert stim.license == "CC-BY-SA-4.0"
     assert stim.citation  # provenance is recorded
     highs = [i for i in stim.items if i.condition == "high"]
     lows = [i for i in stim.items if i.condition == "low"]
-    assert len(highs) == len(lows) == 12
+    assert len(highs) == len(lows) == 15
 
     # Every target is annotated, sits inside the sentence, and is frequency-typed.
     for item in highs:
@@ -77,7 +80,7 @@ def test_controlled_set_is_a_clean_frequency_manipulation() -> None:
     by_pair: dict[str, dict[str, object]] = {}
     for item in stim.items:
         by_pair.setdefault(str(item.properties["pair"]), {})[item.condition] = item
-    assert len(by_pair) == 12
+    assert len(by_pair) == 15
     for cells in by_pair.values():
         hi, lo = cells["high"], cells["low"]
         assert hi.target_index == lo.target_index
@@ -112,9 +115,52 @@ def test_naturalistic_set_has_per_word_frequencies_and_questions() -> None:
         assert isinstance(item.answer, bool)
 
 
+def _build_script() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("build_stimuli", _STIMULI / "build_stimuli.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_no_target_word_recurs_in_another_bundled_item() -> None:
+    # A target read again elsewhere in a session would carry a repetition effect.
+    # The check uses the build script's own definitions of a word and its forms.
+    build = _build_script()
+    items = [i for path in (_CONTROLLED, _LENGTH, _NATURAL) for i in load_stimulus_set(path).items]
+
+    def group(item: StimulusItem) -> str:
+        return str(item.properties.get("pair", item.passage.id))
+
+    def words(item: StimulusItem) -> set[str]:
+        text = " ".join([item.passage.text, *(q.text for q in item.questions)])
+        found: set[str] = build.words_of(text)
+        return found
+
+    for item in items:
+        if item.target_index is None:
+            continue
+        word = item.passage.words[item.target_index].text.strip(string.punctuation).lower()
+        forms: set[str] = build.inflections(word)
+        clashes = [o.passage.id for o in items if group(o) != group(item) and forms & words(o)]
+        assert not clashes, f"{word!r} of {item.passage.id} also appears in {clashes}"
+
+
+def test_inflections_cover_regular_and_listed_irregular_forms() -> None:
+    build = _build_script()
+    assert {"planned", "planning", "plans"} <= build.inflections("plan")
+    assert "planes" not in build.inflections("plan")
+    assert "feed" not in build.inflections("fee")
+    assert {"strategies", "fathered", "churches"} <= (
+        build.inflections("strategy") | build.inflections("father") | build.inflections("church")
+    )
+    assert {"women", "women's"} <= build.inflections("woman")
+    assert {"doctor's", "farm", "house"} <= build.words_of("the doctor\u2019s farm-house")
+
+
 def test_load_passages_reads_the_annotated_controlled_set() -> None:
     passages = load_passages(_CONTROLLED)
-    assert len(passages) == 24
+    assert len(passages) == 30
     assert all(p.words for p in passages)
 
 
