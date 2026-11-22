@@ -21,3 +21,9 @@ Keep the core dependency-light. New heavy or hardware-specific dependencies go b
 ## Pull requests
 
 Keep changes focused, add tests and run the checks above before opening a pull request.
+
+## Releases
+
+To prepare a release, set the new version in `src/readsync/__init__.py`, which the package build reads, and in `CITATION.cff`, where a test checks that the two agree. Set `date-released` to the day of publication and turn the changelog's Unreleased heading into the version and date. Then, publish a GitHub release tagged with the version prefixed with `v`.
+
+Once the repository is enabled in Zenodo's GitHub settings, Zenodo archives each published release and gives it a DOI. It takes the title, description, authors, keywords and licence from `CITATION.cff`, and the version and date from the GitHub release. Zenodo accepts a single licence there, so `license` stays `MIT` and the abstract states the licence of the stimulus files. Check the file with `cffconvert --validate` before publishing.
