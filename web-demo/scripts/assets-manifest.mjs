@@ -1,11 +1,11 @@
 // The vendored third-party assets, pinned by version and by content.
 //
-// The version is tasks-vision 0.10.35, the release the desktop toolkit was
-// developed and tested against (pyproject.toml bounds mediapipe to the same
-// 0.10 series); bump both together, never one side alone. Every entry also
+// The version is tasks-vision 0.10.35. The Python webcam extra accepts the
+// mediapipe 0.10 releases that depend on OpenCV (pyproject.toml), so keep both
+// sides on the same series when updating either. Every entry also
 // carries the SHA-256 of the expected bytes, so a substituted download can
 // never be vendored or deployed: fetch-assets.mjs verifies on download and
-// check-assets.mjs re-verifies before every deploy. When bumping the version,
+// check-assets.mjs re-verifies before every deploy. When updating the version,
 // refresh the hashes from a download you have inspected.
 //
 // The runtime and the model are Apache-2.0, so their licence text is vendored
@@ -51,7 +51,7 @@ export const FILES = [
     "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff",
   ],
   [
-    // The canonical Apache-2.0 text; the npm package declares the licence but
+    // The canonical Apache-2.0 text. The npm package declares the licence but
     // ships no licence file.
     "https://www.apache.org/licenses/LICENSE-2.0.txt",
     "vendor/LICENSE",

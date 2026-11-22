@@ -1,14 +1,14 @@
 // Download the MediaPipe FaceLandmarker runtime, its model and their licence
 // into public/, so the deployed site serves everything from its own origin.
-// Nothing is fetched from a third party at run time, which is what lets the
-// Content-Security-Policy stay 'self'-only and keeps the demo self-contained.
+// Nothing is fetched from a third party at run time, which lets the
+// Content-Security-Policy allow no host other than the site's own.
 //
 //   node scripts/fetch-assets.mjs
 //
-// The downloaded files are gitignored (large binaries, not source). Versions
-// and expected SHA-256 hashes live in assets-manifest.mjs; every download is
-// verified against its hash before it is written, so a substituted response
-// from a CDN can never be vendored.
+// The downloaded files are third-party builds and a large model, so they are
+// gitignored. Versions and expected SHA-256 hashes are listed in assets-manifest.mjs.
+// Every download is verified against its hash before it is written, so a
+// substituted response from a CDN cannot be vendored.
 
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";

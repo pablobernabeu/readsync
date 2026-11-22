@@ -265,3 +265,297 @@ def test_questions_are_skipped_when_the_presenter_cannot_ask(tmp_path: Path) -> 
     assert result.n_passages == 1
     assert "response" not in types
     assert "prompt" not in types
+
+
+class _TrialTracker(NullTracker):
+    """Records the order of tracker calls, and fails a drift check while recording."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls: list[str] = []
+
+    def begin_trial(self, trial_id: str, areas: list[object]) -> None:
+        self.calls.append(f"begin {trial_id} {len(areas)}")
+
+    def end_trial(self, variables: dict[str, object]) -> None:
+        self.calls.append(f"end {variables['passage']} {variables['condition']}")
+
+    def drift_correct(self) -> float | None:
+        assert not self._recording, "drift check while recording"
+        self.calls.append("drift")
+        return 0.2
+
+    def start_recording(self) -> None:
+        super().start_recording()
+        self.calls.append("start")
+
+    def stop_recording(self) -> None:
+        super().stop_recording()
+        self.calls.append("stop")
+
+
+def test_each_passage_is_one_trial_recorded_after_its_drift_check(tmp_path: Path) -> None:
+    tracker = _TrialTracker()
+    session = ReadingSession(
+        participant="p",
+        tracker=tracker,
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=EventLog(tmp_path / "s.log", key=new_data_key()),
+    )
+    items = [
+        StimulusItem(passage=Passage(id="p1", text="a b c"), condition="high"),
+        StimulusItem(passage=Passage(id="p2", text="d e"), condition="low"),
+    ]
+    session.run_items(items)
+    assert tracker.calls == [
+        "begin p1 3", "drift", "start", "stop", "end p1 high",
+        "begin p2 2", "drift", "start", "stop", "end p2 low",
+    ]
+
+
+def test_session_events_carry_the_session_clock_and_a_completion_status(
+    tmp_path: Path,
+) -> None:
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p",
+        tracker=_CheckedTracker(),
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=log,
+    )
+    session.run([Passage(id="p1", text="a b c")])
+    events = log.events()
+    for kind in ("calibration", "session_start", "drift_check", "session_end"):
+        event = next(e for e in events if e["type"] == kind)
+        assert isinstance(event["t"], float), kind
+    assert events[-1]["type"] == "session_end"
+    assert events[-1]["status"] == "completed"
+
+
+def test_a_crashed_session_is_closed_as_aborted(tmp_path: Path) -> None:
+    import pytest
+
+    class _Failing(HeadlessPresenter):
+        def tick(self) -> tuple[float, bool]:
+            raise RuntimeError("display lost")
+
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p", tracker=NullTracker(), presenter=_Failing(), log=log
+    )
+    with pytest.raises(RuntimeError, match="display lost"):
+        session.run([Passage(id="p1", text="a b c")])
+    end = log.events()[-1]
+    assert (end["status"], end["error"]) == ("aborted", "RuntimeError")
+
+
+def test_session_start_names_the_session_and_its_plan(tmp_path: Path) -> None:
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p",
+        tracker=NullTracker(),
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=log,
+    )
+    result = session.run([Passage(id="p1", text="a"), Passage(id="p2", text="b")])
+    start = log.events()[0]
+    assert start["planned"] == ["p1", "p2"]
+    assert start["session"] == result.session_id == log.events()[-1]["session"]
+    assert result.log_head == log.head
+
+
+def test_a_log_that_already_holds_a_session_is_refused(tmp_path: Path) -> None:
+    import pytest
+
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    log.append({"type": "note"})
+    session = ReadingSession(
+        participant="p", tracker=NullTracker(), presenter=HeadlessPresenter(), log=log
+    )
+    with pytest.raises(ValueError, match="own log file"):
+        session.run([Passage(id="p1", text="a")])
+
+
+class _WordTracker(NullTracker):
+    """Returns gaze at the centre of a scripted word, one per poll."""
+
+    def __init__(self, layout: FixedWidthLayout, passage: Passage, words: list[int]) -> None:
+        super().__init__()
+        from readsync.text import interest_areas
+
+        self._areas = interest_areas(passage.words, layout)
+        self._words = list(words)
+
+    def poll(self, t: float) -> GazeSample | None:
+        if not self._recording or not self._words:
+            return None
+        area = self._areas[self._words.pop(0)]
+        return GazeSample(t=t, x=(area.x1 + area.x2) / 2, y=(area.y1 + area.y2) / 2)
+
+
+def _region_events(
+    tmp_path: Path, regions: list[Region], words: list[int]
+) -> list[tuple[str, str, str]]:
+    layout = FixedWidthLayout()
+    passage = Passage(id="p1", text="w0 w1 w2 w3 w4 w5 w6 w7")
+    log = EventLog(tmp_path / "regions.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p",
+        tracker=_WordTracker(layout, passage, words),
+        presenter=HeadlessPresenter(seconds_per_passage=len(words) / 60 + 0.05),
+        log=log,
+        layout=layout,
+    )
+    session.run_items([StimulusItem(passage=passage, regions=regions)])
+    events = [
+        (e["type"], e["region"], e.get("reason", ""))
+        for e in log.events()
+        if e["type"] in ("region_enter", "region_exit")
+    ]
+    return events
+
+
+def test_nested_regions_each_get_their_own_events(tmp_path: Path) -> None:
+    sentence = Region(id="sent", start=0, end=8, layer="integration")
+    target = Region(id="crit", start=3, end=5, layer="vocabulary")
+    events = _region_events(tmp_path, [sentence, target], [1, 3, 4, 6])
+    assert events == [
+        ("region_enter", "sent", ""),
+        ("region_enter", "crit", ""),
+        ("region_exit", "crit", "gaze"),
+        ("region_exit", "sent", "passage_end"),
+    ]
+
+
+def test_partially_overlapping_regions_do_not_exit_while_gaze_is_inside(
+    tmp_path: Path,
+) -> None:
+    first = Region(id="a", start=2, end=5, layer="x")
+    second = Region(id="b", start=0, end=3, layer="y")
+    events = _region_events(tmp_path, [first, second], [1, 2, 4])
+    assert events == [
+        ("region_enter", "b", ""),
+        ("region_enter", "a", ""),
+        ("region_exit", "b", "gaze"),
+        ("region_exit", "a", "passage_end"),
+    ]
+
+
+def test_an_escalated_drift_check_logs_the_calibration_even_if_its_message_repeats(
+    tmp_path: Path,
+) -> None:
+    class _Escalating(_CheckedTracker):
+        def drift_correct(self) -> float | None:
+            self.drift_calls += 1
+            return None  # aborted or escalated into a recalibration
+
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p",
+        tracker=_Escalating(),
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=log,
+    )
+    session.run([Passage(id="p1", text="a"), Passage(id="p2", text="b")])
+    calibrations = [e for e in log.events() if e["type"] == "calibration"]
+    assert len(calibrations) == 3  # the initial calibration and one per escalation
+
+
+def test_a_tracker_frame_that_differs_from_the_window_is_refused(tmp_path: Path) -> None:
+    import pytest
+
+    class _Framed(NullTracker):
+        screen_size = (1920, 1080)
+
+    class _Windowed(HeadlessPresenter):
+        size = (1280, 720)
+
+    session = ReadingSession(
+        participant="p",
+        tracker=_Framed(),
+        presenter=_Windowed(),
+        log=EventLog(tmp_path / "s.log", key=new_data_key()),
+    )
+    with pytest.raises(ValueError, match="would not line up"):
+        session.run([Passage(id="p1", text="a")])
+
+
+class _Recorder(NullTracker):
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls: list[str] = []
+
+    def connect(self) -> None:
+        self.calls.append("connect")
+
+    def close(self) -> None:
+        self.calls.append("close")
+
+
+def test_a_passage_that_does_not_fit_fails_before_the_tracker_connects(tmp_path: Path) -> None:
+    import pytest
+
+    class _Windowed(HeadlessPresenter):
+        size = (400, 300)
+
+    tracker = _Recorder()
+    session = ReadingSession(
+        participant="p",
+        tracker=tracker,
+        presenter=_Windowed(),
+        log=EventLog(tmp_path / "s.log", key=new_data_key()),
+        layout=FixedWidthLayout(x0=100, y0=100, char_width=16, max_chars_per_line=40),
+    )
+    with pytest.raises(ValueError, match="outside the 400x300 window"):
+        session.run([Passage(id="p1", text="a fairly long sentence that runs off the side")])
+    assert tracker.calls == []
+
+
+def test_the_tracker_is_closed_when_the_log_cannot_be_synced(tmp_path: Path) -> None:
+    import pytest
+
+    class _FailingLog(EventLog):
+        def sync(self) -> None:
+            raise OSError("disk full")
+
+    tracker = _Recorder()
+    session = ReadingSession(
+        participant="p",
+        tracker=tracker,
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=_FailingLog(tmp_path / "s.log", key=new_data_key()),
+    )
+    with pytest.raises(OSError, match="disk full"):
+        session.run([Passage(id="p1", text="a")])
+    assert tracker.calls == ["connect", "close"]
+
+
+def test_a_reported_drift_status_decides_whether_a_recalibration_is_logged(
+    tmp_path: Path,
+) -> None:
+    class _Status(_CheckedTracker):
+        def __init__(self) -> None:
+            super().__init__()
+            self.last_drift_status: int | None = None
+
+        def drift_correct(self) -> float | None:
+            self.drift_calls += 1
+            # A successful check whose error could not be read.
+            self.last_drift_status = 0
+            return None
+
+        def describe(self) -> dict[str, object]:
+            return {"backend": "test"}
+
+    log = EventLog(tmp_path / "s.log", key=new_data_key())
+    session = ReadingSession(
+        participant="p",
+        tracker=_Status(),
+        presenter=HeadlessPresenter(seconds_per_passage=0.1),
+        log=log,
+    )
+    session.run([Passage(id="p1", text="a")])
+    events = log.events()
+    assert [e["type"] for e in events].count("calibration") == 1
+    assert next(e for e in events if e["type"] == "drift_check")["status"] == 0
+    assert next(e for e in events if e["type"] == "session_start")["tracker"] == {"backend": "test"}

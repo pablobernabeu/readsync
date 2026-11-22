@@ -48,7 +48,10 @@ def test_encrypt_round_trip() -> None:
 def test_decrypt_detects_tampering() -> None:
     key = new_data_key()
     token = bytearray(encrypt(b"sensitive", key))
-    token[-1] ^= 0x01
+    # Change a character in the middle to another valid base64 character. The
+    # last character can be padding, which some Python versions ignore.
+    middle = len(token) // 2
+    token[middle] = ord("A") if token[middle] != ord("A") else ord("B")
     with pytest.raises(DecryptionError):
         decrypt(bytes(token), key)
 
@@ -126,3 +129,77 @@ def test_guard_blocks_connect_ex_too() -> None:
                 sock.connect_ex(("93.184.216.34", 80))
         finally:
             sock.close()
+
+
+def test_a_guard_built_inside_another_restores_the_real_methods() -> None:
+    original = socket.socket.connect
+    with NetworkGuard():
+        later = NetworkGuard()
+    with later:
+        pass
+    assert socket.socket.connect is original
+
+
+def test_nested_guards_unwind_in_order() -> None:
+    original = socket.socket.connect
+    with NetworkGuard():
+        patched = socket.socket.connect
+        with NetworkGuard():
+            pass
+        assert socket.socket.connect is patched
+    assert socket.socket.connect is original
+
+
+def test_guards_may_overlap_out_of_order() -> None:
+    original = socket.socket.connect
+    first, second = NetworkGuard(), NetworkGuard()
+    first.__enter__()
+    second.__enter__()
+    first.__exit__(None, None, None)
+    # The second guard is still active, so outbound connections stay blocked.
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    with pytest.raises(OfflineViolation):
+        sock.connect(("192.0.2.1", 80))
+    sock.close()
+    second.__exit__(None, None, None)
+    assert socket.socket.connect is original
+
+
+def test_the_strictest_active_guard_decides() -> None:
+    with NetworkGuard(), NetworkGuard(allow_loopback=False):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        with pytest.raises(OfflineViolation):
+            sock.connect(("127.0.0.1", 9))
+        sock.close()
+
+
+def test_guard_restores_the_methods_after_an_exception() -> None:
+    original = socket.socket.connect
+    with pytest.raises(RuntimeError), NetworkGuard():
+        raise RuntimeError("boom")
+    assert socket.socket.connect is original
+
+
+def test_a_wrapper_left_installed_by_another_patch_is_not_saved_as_the_original() -> None:
+    from unittest import mock
+
+    original = socket.socket.connect
+    with NetworkGuard():
+        # Another patch replaces the guard's wrapper and keeps a reference to it.
+        guarded = socket.socket.connect
+        patcher = mock.patch.object(socket.socket, "connect", guarded)
+        patcher.start()
+    patcher.stop()  # puts the guard's wrapper back after the guard has exited
+    with NetworkGuard():
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        with pytest.raises(ConnectionRefusedError):
+            sock.connect(("127.0.0.1", 9))  # loopback is allowed and must not recurse
+        sock.close()
+    assert socket.socket.connect is original
+
+
+def test_pseudonyms_ignore_unicode_form_and_surrounding_whitespace() -> None:
+    key = b"k" * 32
+    composed = "Jos" + chr(0xE9)  # e with acute accent as one code point
+    decomposed = "Jose" + chr(0x301)  # e followed by a combining acute accent
+    assert pseudonymise(composed, key=key) == pseudonymise(" " + decomposed + "\n", key=key)

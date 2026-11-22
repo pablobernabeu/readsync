@@ -1,22 +1,18 @@
-"""Run a reading session on a webcam instead of the infrared tracker.
+"""Run a reading session with a webcam in place of the eye-tracker.
 
-This shows the webcam counterpart slotting into the same session as the
-research-grade device. Only the tracker changes: a :class:`WebcamTracker` driving
-a camera and a gaze estimator replaces ``EyeLinkTracker``, and everything else,
-the presentation, the offline encrypted log and the export, is unchanged.
+A session needs only a different tracker. A :class:`WebcamTracker` driving a
+camera and a gaze estimator takes the place of ``EyeLinkTracker``, and the
+presentation, the encrypted log and the export work as before.
 
 Requirements:
 
-    pip install -e ".[present,webcam]"   # from the repo root: PsychoPy, OpenCV, MediaPipe
+    pip install -e ".[present,webcam]"   # from the repository root: PsychoPy and MediaPipe
 
-Two caveats. Webcam gaze is far coarser than the infrared tracker and is
-unsuitable for word-level reading measures. This path is for the methods strand
-and for coarse uses, not for the main study. The estimator also needs a
-per-participant calibration: the placeholder below is fitted from a few synthetic
-points so the script runs as a wiring check, and a real study replaces it with a
-calibration routine that records the eye while the reader looks at known targets.
-With no camera attached the session still completes and simply records no gaze,
-which makes it a safe smoke test of the wiring.
+The estimator needs a calibration for each participant. The placeholder below is
+fitted from a few synthetic points so that the script runs as a check of the
+wiring. A study fits a ``HeadAwareGazeModel`` from the reader's own eyes, as
+examples/webcam_live_demo.py does, and passes it as ``model``. With no camera
+attached, the session still completes and records no gaze.
 """
 
 from __future__ import annotations
@@ -51,8 +47,9 @@ def _placeholder_calibration() -> AffineCalibration:
 
 
 def main() -> None:
-    key = new_data_key()
-    participant = pseudonymise("demo-participant", key=key)
+    # In a study, keep both keys apart from the data.
+    data_key = new_data_key()
+    participant = pseudonymise("demo-participant", key=new_data_key())
     passages = load_passages(STIMULI)
 
     size = (1280, 720)
@@ -63,7 +60,7 @@ def main() -> None:
     )
     tracker = WebcamTracker(estimator=estimator, screen_size=size, max_rate_hz=30.0)
 
-    log = EventLog(f"data/{participant}.log", key=key)
+    log = EventLog(f"data/{participant}-s1.log", key=data_key)
     session = ReadingSession(
         participant=participant,
         tracker=tracker,
@@ -73,7 +70,7 @@ def main() -> None:
     )
 
     result = session.run(passages)
-    out = log_to_csv(log, f"export/{participant}.csv")
+    out = log_to_csv(log, f"export/{participant}-s1.csv")
     print(f"recorded {result.n_events} events for {result.participant}")
     print(f"exported to {out}")
 

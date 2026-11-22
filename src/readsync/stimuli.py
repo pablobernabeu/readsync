@@ -8,13 +8,13 @@ The format is JSON with study metadata (name, language, licence, source, citatio
 and a design note) and a list of items. Each item has an ``id`` and ``text`` and
 may carry experimental annotation: a ``condition`` label, a ``target`` word with
 its index and properties, per-word frequencies under ``words``, multi-word
-``regions`` typed by the layer of reading they load, and comprehension
-``questions`` tied to those regions. A simpler file that holds only a list of
+``regions``, each labelled with the component of reading it is built to load,
+and comprehension ``questions`` tied to those regions. A simpler file that holds only a list of
 ``{"id", "text"}`` objects, or an object with a ``"passages"`` key, is also
 accepted, so plain passage lists load too.
 
 Regions and questions are validated at load, so a span that runs past the end of
-the passage, a duplicate or malformed identifier, or a question probing an
+the passage, a duplicate or malformed identifier or a question probing an
 unknown region is caught before a session starts. Identifiers may not contain
 whitespace or ``=``, because they travel verbatim in the ``key=value`` marker
 messages sent to the eye-tracker and the EEG stream.
@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -36,6 +37,15 @@ from typing import Any
 from .text import Passage, Region
 
 __all__ = ["Question", "StimulusItem", "StimulusSet", "load_stimulus_set", "load_passages"]
+
+def _strip_punctuation(token: str) -> str:
+    """The token without leading or trailing punctuation, in any script."""
+    start, end = 0, len(token)
+    while start < end and unicodedata.category(token[start]).startswith("P"):
+        start += 1
+    while end > start and unicodedata.category(token[end - 1]).startswith("P"):
+        end -= 1
+    return token[start:end]
 
 
 @dataclass(frozen=True)
@@ -67,9 +77,9 @@ class StimulusItem:
     frequency where annotated. ``regions`` lists the annotated multi-word spans,
     each typed by the layer of reading it loads, and ``questions`` the
     comprehension checks tied to them. ``question_position`` is ``"after"`` by
-    default; ``"before"`` shows the question text before the passage, the
-    information-seeking regime of the naturalistic corpora. ``question`` and
-    ``answer`` mirror the first question for backward compatibility.
+    default. With ``"before"``, the question text is also shown before the
+    passage, as in the information-seeking condition of the OneStop corpus. ``question`` and
+    ``answer`` mirror the first question, for code that expects a single one.
     """
 
     passage: Passage
@@ -133,9 +143,9 @@ def _check_id(kind: str, value: str, passage_id: str) -> str:
 def _parse_regions(item: dict[str, Any], passage: Passage) -> list[Region]:
     """Parse and validate an item's ``regions`` list against its word count.
 
-    Regions may overlap; where they do, gaze is attributed to the first region
-    listed (see :func:`readsync.text.region_at`). Ids must be unique within the
-    item.
+    Regions may overlap or nest, for example a target word inside a
+    sentence-level region, and the session tracks each one separately. Ids must
+    be unique within the item.
     """
     regions: list[Region] = []
     seen: set[str] = set()
@@ -218,7 +228,44 @@ def load_passages(path: str | Path) -> list[Passage]:
     starts.
     """
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    return [Passage(id=str(item["id"]), text=str(item["text"])) for item in _items(data)]
+    passages = [Passage(id=str(item["id"]), text=str(item["text"])) for item in _items(data)]
+    _check_passage_ids(passages)
+    return passages
+
+
+def _check_passage_ids(passages: list[Passage]) -> None:
+    """Refuse malformed or repeated passage ids, which key every event and marker."""
+    seen: set[str] = set()
+    for passage in passages:
+        _check_id("item", passage.id, passage.id)
+        if passage.id in seen:
+            raise ValueError(f"item id {passage.id!r} appears more than once")
+        seen.add(passage.id)
+
+
+def _check_target(item_id: str, target: dict[str, Any], passage: Passage) -> int | None:
+    """Return the target's word index after checking it points at the target word."""
+    if "word_index" not in target:
+        return None
+    index = target["word_index"]
+    if not isinstance(index, int) or isinstance(index, bool):
+        raise ValueError(f"item {item_id!r}: target word_index must be an integer")
+    if not 0 <= index < len(passage.words):
+        raise ValueError(
+            f"item {item_id!r}: target word_index {index} is outside the passage's "
+            f"{len(passage.words)} words"
+        )
+    word = target.get("word")
+    token = passage.words[index].text
+    if word is not None and str(word).casefold() not in (
+        token.casefold(),
+        _strip_punctuation(token).casefold(),
+    ):
+        raise ValueError(
+            f"item {item_id!r}: target word_index {index} points at "
+            f"{passage.words[index].text!r}, not {word!r}"
+        )
+    return index
 
 
 def load_stimulus_set(path: str | Path) -> StimulusSet:
@@ -231,18 +278,26 @@ def load_stimulus_set(path: str | Path) -> StimulusSet:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     meta = data if isinstance(data, dict) else {}
     items: list[StimulusItem] = []
-    for item in _items(data):
+    raw_items = _items(data)
+    _check_passage_ids([Passage(id=str(item["id"]), text="") for item in raw_items])
+    for item in raw_items:
         target = item.get("target") or {}
         word_zipf = {
             int(w["index"]): float(w["zipf"])
             for w in item.get("words", [])
-            if "index" in w and "zipf" in w
+            if "index" in w and w.get("zipf") is not None
         }
         properties = {k: v for k, v in target.items() if k != "word_index"}
         if "pair" in item:
             properties["pair"] = item["pair"]
         passage = Passage(id=str(item["id"]), text=str(item["text"]))
-        _check_id("item", passage.id, passage.id)
+        target_index = _check_target(passage.id, target, passage)
+        for index in word_zipf:
+            if not 0 <= index < len(passage.words):
+                raise ValueError(
+                    f"item {passage.id!r}: word frequency index {index} is outside "
+                    "the passage"
+                )
         regions = _parse_regions(item, passage)
         questions = _parse_questions(item, passage, regions)
         position = str(item.get("question_position", "after"))
@@ -255,7 +310,7 @@ def load_stimulus_set(path: str | Path) -> StimulusSet:
             StimulusItem(
                 passage=passage,
                 condition=item.get("condition"),
-                target_index=target.get("word_index"),
+                target_index=target_index,
                 properties=properties,
                 word_zipf=word_zipf,
                 regions=regions,

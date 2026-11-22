@@ -1,10 +1,19 @@
 cff-version: 1.2.0
-message: "If you use readsync, please cite it as below."
+message: "If you use readsync, please cite the version you used."
 type: software
-title: "readsync: offline-first, secure toolkit for synchronised reading experiments"
+title: "readsync: a toolkit for synchronised reading experiments with eye-tracking and EEG"
+abstract: >-
+  A Python toolkit for reading experiments that record eye movements and, optionally,
+  EEG. It presents annotated reading materials, derives word interest areas, sends
+  event markers to the eye-tracker's data file and to the EEG recording and keeps an
+  encrypted, tamper-evident session log. The code is released under the MIT Licence.
+  The bundled stimulus files are released under CC BY-SA 4.0, because their Zipf
+  values come from wordfreq's data. Their sentences, passages and questions are also
+  released on their own under CC BY 4.0.
 authors:
   - family-names: Bernabeu
     given-names: Pablo
+    affiliation: University of Oxford
     orcid: "https://orcid.org/0000-0003-1083-2460"
 version: 0.1.0
 date-released: 2026-08-26

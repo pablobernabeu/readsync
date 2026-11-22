@@ -96,7 +96,7 @@ def test_single_sample_passage_cannot_zero_the_session_rate() -> None:
     events = [
         {"type": "passage_onset", "t": 0.0, "passage": "p1"},
         {"type": "gaze", "t": 0.0, "x": 1.0, "y": 1.0, "valid": True},
-        {"type": "passage_offset", "t": 0.1, "passage": "p1"},
+        {"type": "passage_offset", "t": 0.0, "passage": "p1"},
         {"type": "passage_onset", "t": 1.0, "passage": "p2"},
         {"type": "gaze", "t": 1.0, "x": 1.0, "y": 1.0, "valid": True},
         {"type": "gaze", "t": 1.5, "x": 2.0, "y": 1.0, "valid": True},
@@ -104,11 +104,50 @@ def test_single_sample_passage_cannot_zero_the_session_rate() -> None:
         {"type": "passage_offset", "t": 2.0, "passage": "p2"},
     ]
     report = session_quality(events, expected_rate_hz=2)
-    # The rate comes from the timed passage alone: two intervals over one second.
+    # Two intervals over one second of passage time, and every expected sample
+    # arrived, including the single sample of the instantaneous first passage.
     assert report.observed_rate_hz == 2.0
     assert report.sample_loss == 0.0
     assert report.passages[0].n_samples == 1
     assert report.passages[0].duration == 0.0
+
+
+def test_loss_counts_samples_missing_at_the_end_of_a_passage() -> None:
+    # The link delivers 60 Hz samples for the first second of a ten-second
+    # passage and nothing after that.
+    gaze = [
+        {"type": "gaze", "t": i / 60, "tracker_t": i / 60, "x": 1.0, "y": 1.0, "valid": True}
+        for i in range(61)
+    ]
+    events = [
+        {"type": "passage_onset", "t": 0.0, "passage": "p1"},
+        *gaze,
+        {"type": "passage_offset", "t": 10.0, "passage": "p1"},
+    ]
+    report = session_quality(events, expected_rate_hz=60)
+    passage = report.passages[0]
+    assert passage.duration == 10.0
+    assert passage.largest_gap == 9.0
+    assert passage.sample_loss == pytest.approx(0.9, abs=0.002)
+    assert report.sample_loss == pytest.approx(0.9, abs=0.002)
+
+
+def test_a_passage_without_samples_counts_as_lost_and_stale_samples_are_counted() -> None:
+    events = [
+        {"type": "passage_onset", "t": 0.0, "passage": "p1"},
+        {"type": "passage_offset", "t": 2.0, "passage": "p1"},
+        {"type": "passage_onset", "t": 3.0, "passage": "p2"},
+        {"type": "gaze", "t": 3.0, "tracker_t": 100.0, "x": 1.0, "y": 1.0, "valid": True},
+        {"type": "gaze", "t": 4.0, "tracker_t": 100.0, "x": 1.0, "y": 1.0, "valid": True},
+        {"type": "gaze", "t": 5.0, "tracker_t": 100.0, "x": 1.0, "y": 1.0, "valid": True},
+        {"type": "passage_offset", "t": 5.0, "passage": "p2"},
+    ]
+    report = session_quality(events, expected_rate_hz=1)
+    assert report.passages[0].sample_loss == 1.0
+    assert report.passages[0].largest_gap == 2.0
+    assert report.passages[1].n_stale == 2
+    assert report.n_stale == 2
+    assert report.sample_loss == pytest.approx(1 - 3 / 6)
 
 
 def test_invalid_count_sums_raw_counts_not_rounded_proportions() -> None:
@@ -131,3 +170,17 @@ def test_invalid_count_sums_raw_counts_not_rounded_proportions() -> None:
 def test_expected_rate_must_be_positive() -> None:
     with pytest.raises(ValueError, match="positive"):
         session_quality([], expected_rate_hz=0)
+
+
+def test_report_carries_the_session_status_and_plan() -> None:
+    events = [
+        {"type": "session_start", "participant": "p", "session": "s1", "planned": ["a", "b"]},
+        {"type": "passage_onset", "t": 0.0, "passage": "a"},
+        {"type": "passage_offset", "t": 1.0, "passage": "a"},
+        {"type": "session_end", "participant": "p", "session": "s1", "status": "aborted"},
+    ]
+    report = session_quality(events)
+    assert (report.session, report.status, report.n_planned, report.n_passages) == (
+        "s1", "aborted", 2, 1,
+    )
+    assert session_quality(events[:-1]).status is None

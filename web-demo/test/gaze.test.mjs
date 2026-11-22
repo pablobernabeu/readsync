@@ -54,8 +54,9 @@ function rotation4x4(yaw, pitch, roll) {
   const mul = (A, B) =>
     A.map((row, i) => B[0].map((_, j) => row.reduce((acc, _v, k) => acc + A[i][k] * B[k][j], 0)));
   const r = mul(mul(rz, ry), rx);
+  // Packed in column-major order, as MediaPipe delivers the matrix.
   const m = new Array(16).fill(0);
-  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) m[i * 4 + j] = r[i][j];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) m[j * 4 + i] = r[i][j];
   m[15] = 1;
   return m;
 }
@@ -86,7 +87,7 @@ test("eyeFeature values in the eye frame", () => {
   assert.ok(close(fx, 0.6) && close(fy, 0.25));
 });
 
-test("eyeFeature is roll invariant", () => {
+test("eyeFeature is unchanged when the eye and head roll together", () => {
   const upright = eyeFeature(eyeLandmarks([0.47, 0.52]), RIGHT_EYE);
   const tilted = eyeFeature(rotate(eyeLandmarks([0.47, 0.52]), (25 * Math.PI) / 180, [0.45, 0.5]), RIGHT_EYE);
   assert.ok(close(tilted[0], upright[0]) && close(tilted[1], upright[1]));
@@ -230,4 +231,43 @@ test("the port reproduces the desktop implementation on a shared fixture", () =>
   });
   const cv = crossValidatedError(PARITY.signals, PARITY.targets, PARITY.ridge, PARITY.groups);
   assert.ok(close(cv, PARITY.cv_error, 1e-8), "cross-validated error");
+});
+
+test("head pose matches the desktop on matrices packed as MediaPipe packs them", () => {
+  PARITY.head_pose.forEach(({ packed, angles }, i) => {
+    const { yaw, pitch, roll } = headPoseFromMatrix(packed);
+    assert.ok(close(yaw, angles[0], 1e-9), `yaw[${i}]`);
+    assert.ok(close(pitch, angles[1], 1e-9), `pitch[${i}]`);
+    assert.ok(close(roll, angles[2], 1e-9), `roll[${i}]`);
+  });
+});
+
+test("eye features and openness match the desktop on shared landmarks", () => {
+  PARITY.eyes.forEach(({ points, right, left, openness }, i) => {
+    const landmarks = Array.from({ length: 478 }, () => ({ x: 0, y: 0 }));
+    for (const [index, x, y] of points) landmarks[index] = { x, y };
+    const [rx, ry] = eyeFeature(landmarks, RIGHT_EYE);
+    const [lx, ly] = eyeFeature(landmarks, LEFT_EYE);
+    assert.ok(close(rx, right[0], 1e-12) && close(ry, right[1], 1e-12), `right[${i}]`);
+    assert.ok(close(lx, left[0], 1e-12) && close(ly, left[1], 1e-12), `left[${i}]`);
+    assert.ok(close(eyeOpenness(landmarks, RIGHT_EYE), openness[0], 1e-12), `open.r[${i}]`);
+    assert.ok(close(eyeOpenness(landmarks, LEFT_EYE), openness[1], 1e-12), `open.l[${i}]`);
+  });
+});
+
+test("signals from a FaceLandmarker result and their median match the desktop", () => {
+  PARITY.extraction.results.forEach(({ points, packed, expected }, i) => {
+    const landmarks = Array.from({ length: 478 }, () => ({ x: 0, y: 0 }));
+    for (const [index, x, y] of points) landmarks[index] = { x, y };
+    const s = signalsFromResult({
+      faceLandmarks: [landmarks],
+      facialTransformationMatrixes: [{ rows: 4, columns: 4, data: packed }],
+    });
+    const got = [s.fx, s.fy, s.yaw, s.pitch, s.roll, s.openness];
+    got.forEach((v, k) => assert.ok(close(v, expected[k], 1e-12), `signal[${i}][${k}]`));
+  });
+  const m = medianSignal(PARITY.extraction.median_samples);
+  for (const k of ["fx", "fy", "yaw", "pitch", "roll", "openness"]) {
+    assert.ok(close(m[k], PARITY.extraction.median[k], 1e-15), `median.${k}`);
+  }
 });

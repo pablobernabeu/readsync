@@ -1,8 +1,8 @@
 // Browser orchestration for the Interlexis webcam reading demo. Everything runs
-// on this device: the camera frames go to MediaPipe FaceLandmarker in the
-// browser, the gaze maths (gaze.js) is the same as the desktop readsync
-// toolkit, and the event log is held in memory and only ever downloaded
-// locally. Nothing is uploaded.
+// on this device. Camera frames go to MediaPipe FaceLandmarker in the browser,
+// the gaze model (gaze.js) reproduces readsync.webcam.gaze and is checked
+// against a shared fixture, and the event log is held in memory and only
+// downloaded locally.
 
 import { FaceLandmarker, FilesetResolver } from "/vendor/vision_bundle.mjs";
 import {
@@ -22,10 +22,10 @@ const FX_RANGE = [-0.6, 1.6];
 const FY_RANGE = [-1.6, 1.6];
 const EMA_ALPHA = 0.35;
 const DRIFT_LIMIT_DEG = 12;
-const MAX_CV_ERROR = 0.06; // accept if leave-one-out error is within 6% of screen
+const MAX_CV_ERROR = 0.06; // flag a calibration whose cross-validated error exceeds 6% of the screen
 const RIDGE = 1e-3;
-const FACE_LOST_FRAMES = 45; // consecutive frames without a usable signal; ~0.75 s at 60 Hz
-const RESIZE_TOLERANCE = 0.1; // fraction the window may change before a warning
+const FACE_LOST_FRAMES = 45; // consecutive detections without a usable signal before a hint
+const RESIZE_TOLERANCE = 0.03; // fraction the window may change size before gaze is untrusted
 const CALIB_HINT = "Follow the dot with your eyes.";
 
 const $ = (id) => document.getElementById(id);
@@ -71,21 +71,52 @@ function nextFrame() {
   return new Promise((resolve) => frameWaiters.push(resolve));
 }
 
-function detectLoop() {
-  if (landmarker && video.readyState >= 2) {
-    try {
-      const result = landmarker.detectForVideo(video, performance.now());
-      currentSignal = signalsFromResult(result);
-    } catch {
-      // One failed detection, a non-monotonic timestamp after a tab suspend
-      // for example, counts as a missed frame and must not kill the loop.
-      currentSignal = null;
-    }
-    const waiters = frameWaiters;
-    frameWaiters = [];
-    for (const resolve of waiters) resolve(currentSignal);
+// Detection runs once per new video frame where the browser offers
+// requestVideoFrameCallback, so a 30 fps camera on a fast display is not
+// processed several times per frame, and once per display refresh otherwise. A
+// watchdog hands waiting code a null signal when no frame has arrived for a
+// while, so the interface keeps responding if the camera stops.
+const STALL_MS = 250;
+let lastDelivery = 0;
+
+function deliver(signal) {
+  currentSignal = signal;
+  lastDelivery = performance.now();
+  const waiters = frameWaiters;
+  frameWaiters = [];
+  for (const resolve of waiters) resolve(signal);
+}
+
+function detect(timestamp) {
+  if (!landmarker || video.readyState < 2) return;
+  try {
+    deliver(signalsFromResult(landmarker.detectForVideo(video, timestamp)));
+  } catch {
+    // One failed detection, a non-monotonic timestamp after a tab suspend
+    // for example, counts as a missed frame and must not stop the loop.
+    deliver(null);
   }
-  requestAnimationFrame(detectLoop);
+}
+
+function startDetection() {
+  if (typeof video.requestVideoFrameCallback === "function") {
+    const onFrame = (now) => {
+      detect(now);
+      video.requestVideoFrameCallback(onFrame);
+    };
+    video.requestVideoFrameCallback(onFrame);
+  } else {
+    const onRefresh = (now) => {
+      detect(now);
+      requestAnimationFrame(onRefresh);
+    };
+    requestAnimationFrame(onRefresh);
+  }
+  const watchdog = () => {
+    if (frameWaiters.length && performance.now() - lastDelivery > STALL_MS) deliver(null);
+    requestAnimationFrame(watchdog);
+  };
+  requestAnimationFrame(watchdog);
 }
 
 function usable(signal) {
@@ -99,11 +130,11 @@ function usable(signal) {
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 // Resolve when a button is clicked or its shortcut key is pressed, whichever
-// comes first. Clicking is the primary path; the keys stay as an optional
+// comes first. Clicking is the main way to respond, and the keys are an optional
 // shortcut. Each option is { el, value, keys }, where keys are lowercase and
 // " " is the space bar. Key events are ignored while one of the option buttons
 // itself has focus, so that pressing Space on a focused button activates that
-// button natively instead of being hijacked by the window-level shortcut.
+// button rather than the window-level shortcut.
 // Every listener is removed before resolving, so screens never stack them.
 function waitAction(options) {
   return new Promise((resolve) => {
@@ -207,11 +238,15 @@ async function collectTarget(nx, ny, viewport) {
 }
 
 function viewportNow() {
-  return { w: window.innerWidth, h: window.innerHeight };
+  return { w: window.innerWidth, h: window.innerHeight, x: window.screenX, y: window.screenY };
 }
 
+// Gaze is calibrated to positions within the window, so the calibration no
+// longer holds once the window moves on the screen or changes size.
 function resizedFrom(viewport) {
   return (
+    window.screenX !== viewport.x ||
+    window.screenY !== viewport.y ||
     Math.abs(window.innerWidth - viewport.w) / viewport.w > RESIZE_TOLERANCE ||
     Math.abs(window.innerHeight - viewport.h) / viewport.h > RESIZE_TOLERANCE
   );
@@ -221,7 +256,7 @@ async function runCalibration() {
   $("reading-controls").hidden = true;
   // Targets are drawn at fractions of the live window, so every pose must be
   // collected at one window size. A resize beyond tolerance mid-calibration
-  // restarts the collection at the new size; the snapshot returned here is the
+  // restarts the collection at the new size. The snapshot returned here is the
   // one the reading-phase guard measures against.
   for (;;) {
     const viewport = viewportNow();
@@ -343,6 +378,15 @@ async function runReading(passages, model, startIndex, viewport) {
       let currentWord = -1;
       control = null;
       events.push({ type: "passage_onset", t: now(), passage: passage.id });
+      events.push({
+        type: "areas",
+        t: now(),
+        passage: passage.id,
+        detail: JSON.stringify(words.map((w) => {
+          const r = w.getBoundingClientRect();
+          return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)];
+        })),
+      });
       while (!control) {
         const signal = await nextFrame();
         clearOverlay();
@@ -371,7 +415,7 @@ async function runReading(passages, model, startIndex, viewport) {
                 currentWord = highlighted;
               }
             } else if (resized) {
-              note = "the window was resized since calibration; recalibrate";
+              note = "the window was moved or resized since calibration; recalibrate";
             } else {
               note = "you have moved; recalibrate";
             }
@@ -383,8 +427,8 @@ async function runReading(passages, model, startIndex, viewport) {
         words.forEach((w, i) => w.classList.toggle("hit", i === highlighted));
         $("reading-note").textContent = note;
       }
-      if (control === "recalibrate") return { status: "recalibrate", index: idx };
       events.push({ type: "passage_offset", t: now(), passage: passage.id });
+      if (control === "recalibrate") return { status: "recalibrate", index: idx };
       if (control === "quit") return { status: "quit", index: idx };
     }
     return { status: "done", index: passages.length };
@@ -397,10 +441,15 @@ async function runReading(passages, model, startIndex, viewport) {
 }
 
 function downloadCsv() {
-  const cols = ["type", "t", "passage", "word", "x", "y", "valid"];
+  const cols = ["type", "t", "passage", "word", "x", "y", "valid", "detail"];
   const lines = [cols.join(",")];
+  const cell = (value) => {
+    if (value === undefined) return "";
+    const text = String(value);
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  };
   for (const e of events) {
-    lines.push(cols.map((c) => (e[c] === undefined ? "" : e[c])).join(","));
+    lines.push(cols.map((c) => cell(e[c])).join(","));
   }
   const blob = new Blob([lines.join("\n")], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
@@ -461,7 +510,7 @@ async function run() {
   }
   if (!detectLoopStarted) {
     detectLoopStarted = true;
-    detectLoop();
+    startDetection();
   }
   sessionClock = performance.now();
   events.length = 0;
@@ -471,7 +520,15 @@ async function run() {
     const { signals, targets, groups, viewport } = await runCalibration();
     const model = HeadAwareModel.fit(signals, targets, RIDGE);
     const cvError = crossValidatedError(signals, targets, RIDGE, groups);
-    if (!(await confirmCalibration(cvError))) continue;
+    const accepted = await confirmCalibration(cvError);
+    events.push({
+      type: "calibration",
+      t: now(),
+      detail:
+        `cv_error=${cvError.toFixed(4)} accepted=${accepted} ` +
+        `viewport=${viewport.w}x${viewport.h} dpr=${window.devicePixelRatio || 1}`,
+    });
+    if (!accepted) continue;
     setHint("Next sentence: button or SPACE. Recalibrate: button or C. Finish: button or Esc.");
     const { status, index: reached } = await runReading(passages, model, index, viewport);
     if (status === "recalibrate") {

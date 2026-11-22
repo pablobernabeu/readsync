@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import string
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
-from readsync.stimuli import load_passages, load_stimulus_set
+from readsync.stimuli import StimulusItem, load_passages, load_stimulus_set
 
 _STIMULI = Path(__file__).resolve().parent.parent / "stimuli"
 _CONTROLLED = _STIMULI / "controlled_freq_en.json"
@@ -59,11 +62,11 @@ def test_plain_list_loads_as_unannotated_set(tmp_path: Path) -> None:
 
 def test_controlled_set_is_a_clean_frequency_manipulation() -> None:
     stim = load_stimulus_set(_CONTROLLED)
-    assert stim.license == "CC-BY-4.0"
+    assert stim.license == "CC-BY-SA-4.0"
     assert stim.citation  # provenance is recorded
     highs = [i for i in stim.items if i.condition == "high"]
     lows = [i for i in stim.items if i.condition == "low"]
-    assert len(highs) == len(lows) == 12
+    assert len(highs) == len(lows) == 15
 
     # Every target is annotated, sits inside the sentence, and is frequency-typed.
     for item in highs:
@@ -77,7 +80,7 @@ def test_controlled_set_is_a_clean_frequency_manipulation() -> None:
     by_pair: dict[str, dict[str, object]] = {}
     for item in stim.items:
         by_pair.setdefault(str(item.properties["pair"]), {})[item.condition] = item
-    assert len(by_pair) == 12
+    assert len(by_pair) == 15
     for cells in by_pair.values():
         hi, lo = cells["high"], cells["low"]
         assert hi.target_index == lo.target_index
@@ -112,9 +115,52 @@ def test_naturalistic_set_has_per_word_frequencies_and_questions() -> None:
         assert isinstance(item.answer, bool)
 
 
+def _build_script() -> ModuleType:
+    spec = importlib.util.spec_from_file_location("build_stimuli", _STIMULI / "build_stimuli.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_no_target_word_recurs_in_another_bundled_item() -> None:
+    # A target read again elsewhere in a session would carry a repetition effect.
+    # The check uses the build script's own definitions of a word and its forms.
+    build = _build_script()
+    items = [i for path in (_CONTROLLED, _LENGTH, _NATURAL) for i in load_stimulus_set(path).items]
+
+    def group(item: StimulusItem) -> str:
+        return str(item.properties.get("pair", item.passage.id))
+
+    def words(item: StimulusItem) -> set[str]:
+        text = " ".join([item.passage.text, *(q.text for q in item.questions)])
+        found: set[str] = build.words_of(text)
+        return found
+
+    for item in items:
+        if item.target_index is None:
+            continue
+        word = item.passage.words[item.target_index].text.strip(string.punctuation).lower()
+        forms: set[str] = build.inflections(word)
+        clashes = [o.passage.id for o in items if group(o) != group(item) and forms & words(o)]
+        assert not clashes, f"{word!r} of {item.passage.id} also appears in {clashes}"
+
+
+def test_inflections_cover_regular_and_listed_irregular_forms() -> None:
+    build = _build_script()
+    assert {"planned", "planning", "plans"} <= build.inflections("plan")
+    assert "planes" not in build.inflections("plan")
+    assert "feed" not in build.inflections("fee")
+    assert {"strategies", "fathered", "churches"} <= (
+        build.inflections("strategy") | build.inflections("father") | build.inflections("church")
+    )
+    assert {"women", "women's"} <= build.inflections("woman")
+    assert {"doctor's", "farm", "house"} <= build.words_of("the doctor\u2019s farm-house")
+
+
 def test_load_passages_reads_the_annotated_controlled_set() -> None:
     passages = load_passages(_CONTROLLED)
-    assert len(passages) == 24
+    assert len(passages) == 30
     assert all(p.words for p in passages)
 
 
@@ -237,3 +283,57 @@ def test_id_with_whitespace_raises(tmp_path: Path) -> None:
     path.write_text(json.dumps([bad]), encoding="utf-8")
     with pytest.raises(ValueError, match="whitespace"):
         load_stimulus_set(path)
+
+
+def test_the_browser_demo_uses_the_bundled_frequency_set() -> None:
+    root = Path(__file__).resolve().parent.parent
+    bundled = root / "stimuli" / "controlled_freq_en.json"
+    demo = root / "web-demo" / "public" / "stimuli" / "controlled_freq_en.json"
+    assert demo.read_bytes() == bundled.read_bytes()
+
+
+@pytest.mark.parametrize(
+    ("items", "message"),
+    [
+        ([{"id": "a", "text": "x"}, {"id": "a", "text": "y"}], "more than once"),
+        ([{"id": "a", "text": "one two", "target": {"word_index": 2}}], "outside"),
+        ([{"id": "a", "text": "one two", "target": {"word_index": "1"}}], "integer"),
+        ([{"id": "a", "text": "one two.", "target": {"word_index": 0, "word": "two"}}], "points"),
+        ([{"id": "a", "text": "one", "words": [{"index": 3, "zipf": 4.0}]}], "outside"),
+    ],
+)
+def test_loader_refuses_inconsistent_items(
+    tmp_path: Path, items: list[dict[str, object]], message: str
+) -> None:
+    path = tmp_path / "set.json"
+    path.write_text(json.dumps({"items": items}), encoding="utf-8")
+    with pytest.raises(ValueError, match=message):
+        load_stimulus_set(path)
+
+
+def test_target_word_may_carry_punctuation_in_the_text(tmp_path: Path) -> None:
+    path = tmp_path / "set.json"
+    item = {"id": "a", "text": "one two.", "target": {"word_index": 1, "word": "two"}}
+    path.write_text(json.dumps({"items": [item]}), encoding="utf-8")
+    assert load_stimulus_set(path).items[0].target_index == 1
+
+
+def test_load_passages_refuses_repeated_ids(tmp_path: Path) -> None:
+    path = tmp_path / "set.json"
+    path.write_text(json.dumps([{"id": "a", "text": "x"}, {"id": "a", "text": "y"}]))
+    with pytest.raises(ValueError, match="more than once"):
+        load_passages(path)
+
+
+@pytest.mark.parametrize(
+    ("text", "word"),
+    [("He saw the river.", "river."), ("He saw the “river”", "river"), ("River flows.", "river")],
+)
+def test_target_word_matches_the_token_with_or_without_punctuation_or_case(
+    tmp_path: Path, text: str, word: str
+) -> None:
+    index = 3 if not text.startswith("River") else 0
+    path = tmp_path / "set.json"
+    item = {"id": "a", "text": text, "target": {"word_index": index, "word": word}}
+    path.write_text(json.dumps({"items": [item]}), encoding="utf-8")
+    assert load_stimulus_set(path).items[0].target_index == index

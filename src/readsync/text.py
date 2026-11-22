@@ -1,14 +1,16 @@
 """Reading stimuli and word-level interest areas.
 
 Reading research measures eye movements on individual words and short regions,
-so a stimulus is not just a string. It is a sequence of words, each with a
-character span in the text and a bounding box on the screen. Those bounding
-boxes are the interest areas against which fixations are later assigned to words
-by tools such as Eyekit or popEye. This module produces them deterministically
-from a fixed-width layout, which is the standard choice for reading studies
-because it makes word boundaries exact.
+so a stimulus is a sequence of words, each with a character span in the text and
+a bounding box on the screen. Those boxes are the interest areas to which gaze
+is assigned. This module derives them deterministically from a fixed-width
+layout. Monospaced fonts are common in eye-movement studies of reading in Latin
+script (Rayner, Slattery & Bélanger, 2010, https://doi.org/10.3758/PBR.17.6.834).
+With every letter the same width, a word's position and extent follow from its
+character span.
 
-Coordinates are in pixels with the origin at the top-left of the text block.
+Coordinates are screen pixels with the origin at the top-left of the screen and
+y pointing down. ``FixedWidthLayout.x0`` and ``y0`` place the text block.
 """
 
 from __future__ import annotations
@@ -43,15 +45,15 @@ class Word:
 
 @dataclass(frozen=True)
 class Region:
-    """A contiguous span of words annotated with the sub-process it loads.
+    """A contiguous span of words labelled with the component of reading it loads.
 
-    Reading designs manipulate multi-word regions, not only single words: a
-    region is built to load one layer of reading, and a matched comparison
+    Reading designs manipulate multi-word regions as well as single words. A
+    region is built to load one component of reading, and a matched comparison
     region controls for length and position. ``start`` and ``end`` are word
-    indices into the passage, ``end`` exclusive. ``layer`` names the
-    sub-process the region loads; the label is free text, agreed per study
-    (the bundled sets use ``decoding``, ``vocabulary`` and ``integration``).
-    ``role`` separates a ``target`` region from its matched ``comparison``.
+    indices into the passage, with ``end`` exclusive. ``layer`` names the
+    component, as free text agreed per study (the bundled controlled sets use
+    ``vocabulary`` and ``decoding``). ``role`` separates a ``target`` region
+    from its matched ``comparison``.
     """
 
     id: str
@@ -128,13 +130,19 @@ def interest_areas(words: list[Word], layout: FixedWidthLayout) -> list[Interest
 
     The algorithm mirrors a simple reading display: words are placed with a
     single space between them, and a word that would overflow the line starts a
-    new line. Because the layout is fixed-width, each word's box is exact.
+    new line. Each word's box matches the word as drawn when ``char_width`` and
+    ``line_height`` match the font (see :mod:`readsync.presenters`).
     """
     areas: list[InterestArea] = []
     col = 0
     row = 0
     for word in words:
         length = len(word.text)
+        if length > layout.max_chars_per_line:
+            raise ValueError(
+                f"word {word.text!r} has {length} characters, more than the "
+                f"{layout.max_chars_per_line} that fit on a line"
+            )
         if col > 0 and col + 1 + length > layout.max_chars_per_line:
             row += 1
             col = 0

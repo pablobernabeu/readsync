@@ -1,8 +1,8 @@
-# CI for the standalone readsync repository. While readsync lives inside the
-# monorepo this nested workflow is inert, because GitHub runs workflows only
-# from the repository root, where readsync-ci.yml covers this folder. When
-# readsync is split into its own repository this directory becomes the root and
-# this workflow takes over unchanged.
+# Lint, type-check and test the Python package on Linux and Windows, and test the
+# browser demo's gaze maths. CI installs the eyelink extra, which provides SR
+# Research's pylink, so that the EyeLink backend's calls run in pylink's dummy
+# mode. pylink's licence permits educational and non-commercial use, and SR
+# Research publishes wheels for each Python version listed here.
 name: CI
 
 on:
@@ -17,14 +17,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
-        run: python -m pip install -e ".[dev]"
+        run: python -m pip install -e ".[dev,eyelink]"
       - name: Lint
         run: ruff check .
       - name: Type-check

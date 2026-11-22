@@ -1,24 +1,29 @@
 """Eye-tracker backends behind a small common interface.
 
-The science needs a research-grade infrared tracker, but the toolkit is written
-against a ``Tracker`` protocol so that the experiment logic does not depend on a
-particular device, and so that it runs on a developer's laptop and in continuous
-integration with no hardware at all.
+The session is written against a ``Tracker`` protocol, so the experiment logic
+does not depend on a particular device and runs with no hardware at all.
 
-``NullTracker`` produces synthetic gaze and is used for development and tests.
-``EyeLinkTracker`` sketches the SR Research ``pylink`` integration, following the
-documented call sequence, configuration and data flow, so the lab build is a
-matter of installing the SDK, supplying calibration graphics and validating
-against the device. The SDK is imported lazily, so importing this module never
-requires it. New backends (for example a Tobii backend via Titta, or the webcam
-tracker in ``readsync.webcam``) implement the same protocol.
+``NullTracker`` produces synthetic gaze for development and tests and must never
+be used to collect data. ``EyeLinkTracker`` drives an SR Research EyeLink through
+pylink, following SR Research's documented call sequence. Its connection, trial,
+recording and closing calls run in pylink's dummy mode, while calibration, the
+drift check and recording still have to be validated with a tracker. pylink is
+imported only when the tracker connects, so importing this module never requires
+it. Other backends, such as the webcam tracker in ``readsync.webcam``, implement
+the same protocol.
 """
 
 from __future__ import annotations
 
 import math
+import re
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
+
+from .dataviewer import trial_end_messages, trial_start_messages, write_ias
+from .text import InterestArea
 
 __all__ = ["GazeSample", "Tracker", "NullTracker", "EyeLinkTracker"]
 
@@ -30,8 +35,9 @@ _MISSING_DATA = -32768.0
 
 @dataclass(frozen=True)
 class GazeSample:
-    """One gaze estimate. ``t`` is seconds from recording start; ``x``/``y`` are
-    pixels; ``valid`` is false during blinks or track loss."""
+    """One gaze estimate. ``t`` is the time in seconds on the tracker's own clock,
+    or the session time for a tracker without one. ``x`` and ``y`` are pixels,
+    and ``valid`` is false during blinks or track loss."""
 
     t: float
     x: float
@@ -88,20 +94,23 @@ class NullTracker:
         return None
 
 
+_EDF_STEM = re.compile(r"[A-Za-z0-9][A-Za-z0-9_]{0,7}")
+
+
 def _validate_edf_name(name: str) -> str:
     """Return a legal EyeLink Host PC data-file name, or raise ``ValueError``.
 
-    The Host PC stores the raw data file under an 8.3-style name, so the stem must
-    be eight characters or fewer and use only letters, digits or an underscore.
-    Checking this before a session starts gives a clear error rather than a
-    cryptic failure on the Host PC. An optional ``.edf`` suffix is accepted and
-    normalised.
+    pylink's ``openDataFile`` documents an MS-DOS style name: at most eight
+    characters, using only ASCII letters, digits and the underscore, and the
+    EyeLink library refuses an underscore in first place. Checking this before a
+    session starts gives a clear error rather than a failure on the Host PC. An
+    optional ``.edf`` suffix is accepted and normalised.
     """
     stem = name[:-4] if name.lower().endswith(".edf") else name
-    if not stem or len(stem) > 8 or not all(c.isalnum() or c == "_" for c in stem):
+    if not _EDF_STEM.fullmatch(stem):
         raise ValueError(
-            "EDF name must be 1 to 8 letters, digits or underscores, optionally "
-            f"with a .edf suffix. Got {name!r}"
+            "EDF name must be 1 to 8 ASCII letters, digits or underscores, not "
+            f"starting with an underscore, optionally with a .edf suffix. Got {name!r}"
         )
     return f"{stem}.edf"
 
@@ -110,7 +119,7 @@ def _gaze_from_components(
     x: float,
     y: float,
     time_ms: float,
-    t0_ms: float,
+    t0_ms: float = 0.0,
     *,
     missing: float = _MISSING_DATA,
 ) -> GazeSample:
@@ -120,30 +129,38 @@ def _gaze_from_components(
     y pointing down, which is the convention the interest areas use, so no axis
     flip is needed. A coordinate equal to ``missing`` marks a blink or track loss
     and yields ``valid=False``. ``time_ms`` and ``t0_ms`` are Host PC times in
-    milliseconds, and the sample time is returned in seconds from the start of
-    recording. This is pure, so the time base and the validity rule are tested
-    without the device.
+    milliseconds, and the sample time is returned in seconds after ``t0_ms``.
+    The backend passes no ``t0_ms``, so the time stays on the Host PC clock and
+    ``t * 1000`` is the sample's timestamp in the EDF file. This is pure, so the
+    time base and the validity rule are tested without the device.
     """
     valid = x != missing and y != missing
     return GazeSample(t=(time_ms - t0_ms) / 1000.0, x=float(x), y=float(y), valid=valid)
 
 
 class EyeLinkTracker:
-    """Research-grade backend over the SR Research ``pylink`` SDK.
+    """Backend for SR Research EyeLink trackers over pylink.
 
-    This sketches the device integration from the documented ``pylink`` call
-    sequence: the configuration, the calibration handshake, the link sampling
-    and the data-file transfer. Completing it in the lab means installing the
-    SDK, supplying a calibration graphics environment and validating against
-    the hardware. Every line that touches the device is marked as not covered,
-    because it cannot run without an EyeLink Host PC. The pure helpers it
-    relies on are tested.
+    It follows the documented pylink call sequence for configuration,
+    calibration, link sampling and the data-file transfer. The connection,
+    trial, recording and closing calls run in pylink's dummy mode, and a test
+    exercises them where pylink is installed. Calibration, the drift check and
+    recording with a tracker have not yet been validated. The pure helpers are
+    tested without pylink.
 
     pylink is imported lazily in :meth:`connect`, so importing this module never
     requires the SDK. The Host PC is reached over a dedicated Ethernet link at
     ``address`` through pylink's own transport rather than through Python sockets,
-    so an active ``NetworkGuard`` does not block it. That link carries local
-    hardware traffic, not internet traffic.
+    so an active ``NetworkGuard`` does not block it. That link carries only local
+    hardware traffic.
+
+    The session runs each passage as one trial. :meth:`begin_trial` writes the
+    passage's interest-area set beside the local copy of the EDF file, named
+    after that file and the trial's position in the session, and sends
+    the ``TRIALID`` and ``!V IAREA FILE`` messages, and :meth:`end_trial` sends
+    the trial variables and ``TRIAL_RESULT``, so EyeLink Data Viewer segments the
+    recording by passage and loads the session's word boxes (see
+    :mod:`readsync.dataviewer`). Recording runs during each passage only.
 
     Parameters
     ----------
@@ -163,12 +180,25 @@ class EyeLinkTracker:
         Local path for the fetched data file. Defaults to ``edf_name`` in the
         working directory.
     graphics:
-        The calibration graphics environment. The lab build passes an
-        ``EyeLinkCoreGraphicsPsychoPy`` instance so calibration is drawn in the
-        same PsychoPy window as the experiment. When ``None``, the SDK's built-in
-        graphics are used.
+        A ready-made calibration graphics environment. When neither this nor
+        ``graphics_factory`` is given, pylink's built-in graphics are used.
+    graphics_factory:
+        Called with the connected pylink ``EyeLink`` object to build the
+        calibration graphics, because SR Research's PsychoPy graphics class needs
+        that object. To calibrate in the experiment's own window, pass
+        ``lambda link: EyeLinkCoreGraphicsPsychoPy(link, presenter.window)``,
+        with the class from SR Research's PsychoPy examples.
     dummy:
         Connect in no-tracker simulation mode for a wiring check with no hardware.
+    interest_area_files:
+        Write each trial's interest-area set beside the local EDF file and name it
+        in the trial's messages. Set to ``False`` to send the trial messages alone.
+    eye:
+        The eye whose gaze drives the session's word and region events:
+        ``"left"``, ``"right"`` or ``None``. With ``None``, a binocular sample
+        uses the right eye and a monocular one the eye recorded. With a named
+        eye, a sample without that eye's data is invalid. The data file keeps
+        every recorded eye either way.
     """
 
     def __init__(
@@ -181,8 +211,13 @@ class EyeLinkTracker:
         edf_name: str = "readsync",
         receive_to: str | None = None,
         graphics: object | None = None,
+        graphics_factory: Callable[[Any], object] | None = None,
         dummy: bool = False,
+        interest_area_files: bool = True,
+        eye: str | None = None,
     ) -> None:
+        if eye not in (None, "left", "right"):
+            raise ValueError(f"eye must be 'left', 'right' or None, got {eye!r}")
         self.address = address
         self.sample_rate = sample_rate
         self.calibration = calibration
@@ -190,12 +225,17 @@ class EyeLinkTracker:
         self.edf_name = _validate_edf_name(edf_name)
         self.receive_to = receive_to
         self.graphics = graphics
+        self.graphics_factory = graphics_factory
         self.dummy = dummy
+        self.interest_area_files = interest_area_files
+        self.eye = eye
         self._pylink: Any = None
         self._link: Any = None
         self._missing: float = _MISSING_DATA
-        self._t0_ms: float = 0.0
+        self._graphics_open = False
+        self._trials = 0
         self.last_calibration_message: str | None = None
+        self.last_drift_status: int | None = None
 
     def connect(self) -> None:
         try:
@@ -211,6 +251,9 @@ class EyeLinkTracker:
         self._pylink = pylink
         self._missing = float(pylink.MISSING_DATA)
         self._link = pylink.EyeLink(None if self.dummy else self.address)
+        # SR Research's examples put the tracker in offline (idle) mode before
+        # opening the data file and sending configuration commands.
+        self._link.setOfflineMode()
         self._link.openDataFile(self.edf_name)
         width, height = self.screen_size
         coords = f"0 0 {width - 1} {height - 1}"
@@ -229,13 +272,18 @@ class EyeLinkTracker:
         self._link.sendCommand("file_sample_data = LEFT,RIGHT,GAZE,STATUS")
         self._link.sendCommand("link_sample_data = LEFT,RIGHT,GAZE,STATUS")
 
-    def calibrate(self) -> None:  # pragma: no cover - requires the host
+    def calibrate(self) -> None:
         if self._link is None:
             raise RuntimeError("connect() must be called before calibrate()")
-        if self.graphics is not None:
-            self._pylink.openGraphicsEx(self.graphics)
-        else:
-            self._pylink.openGraphics(self.screen_size)
+        if not self._graphics_open:
+            graphics = self.graphics
+            if graphics is None and self.graphics_factory is not None:
+                graphics = self.graphics_factory(self._link)
+            if graphics is not None:
+                self._pylink.openGraphicsEx(graphics)
+            else:
+                self._pylink.openGraphics(self.screen_size)
+            self._graphics_open = True
         self._link.doTrackerSetup()
         # The Host PC reports the last calibration or validation outcome as a
         # text message. Keeping it lets the session log it and the per-session
@@ -243,18 +291,22 @@ class EyeLinkTracker:
         self.last_calibration_message = str(self._link.getCalibrationMessage())
 
     def drift_correct(self) -> float | None:  # pragma: no cover - requires the host
-        """Run a drift correction at screen centre and return the error in degrees.
+        """Run a drift check at screen centre and return the reported error.
 
-        The session calls this between passages where the tracker offers it.
-        ``doDriftCorrect`` returns a non-zero status when the check was aborted
-        or escalated to a full recalibration, in which case no error value
-        applies and ``None`` is returned. The error magnitude is read back from
-        the Host PC's calibration message.
+        The session calls this before each passage, while the tracker is idle.
+        The result is a check: ``applyDriftCorrect`` is not called, so the
+        calibration is left unchanged. ``doDriftCorrect`` returns a non-zero
+        status when the check was aborted or escalated to a full recalibration,
+        in which case no error value applies and ``None`` is returned.
+        Otherwise, the first number in the Host PC's calibration message is
+        returned as the error. The message format and the unit of that number
+        still have to be confirmed against the device.
         """
         if self._link is None:
             return None
         width, height = self.screen_size
         status = self._link.doDriftCorrect(width // 2, height // 2, 1, 1)
+        self.last_drift_status = int(status)
         if status != 0:
             # The check was aborted or escalated into a full recalibration, so
             # refresh the stored outcome for the session to log.
@@ -271,28 +323,30 @@ class EyeLinkTracker:
     def start_recording(self) -> None:  # pragma: no cover - requires the host
         if self._link is None:
             raise RuntimeError("connect() must be called before start_recording()")
+        self._link.setOfflineMode()
         error = self._link.startRecording(1, 1, 1, 1)
         if error:
             raise RuntimeError(f"EyeLink startRecording failed with code {error}")
         self._pylink.beginRealTimeMode(100)
+        # Let a few samples arrive before the passage is drawn.
         self._pylink.pumpDelay(100)
-        self._t0_ms = float(self._link.trackerTime())
 
-    def poll(self, t: float) -> GazeSample | None:  # pragma: no cover - requires the host
+    def poll(self, t: float) -> GazeSample | None:
         if self._link is None:
             return None
         sample = self._link.getNewestSample()
         if sample is None:
             return None
-        if sample.isRightSample():
-            eye = sample.getRightEye()
-        elif sample.isLeftSample():
-            eye = sample.getLeftEye()
+        right = self.eye in (None, "right") and sample.isRightSample()
+        left = self.eye in (None, "left") and sample.isLeftSample()
+        if right:
+            gaze_x, gaze_y = sample.getRightEye().getGaze()
+        elif left:
+            gaze_x, gaze_y = sample.getLeftEye().getGaze()
         else:
-            return None
-        gaze_x, gaze_y = eye.getGaze()
+            gaze_x = gaze_y = self._missing
         return _gaze_from_components(
-            gaze_x, gaze_y, float(sample.getTime()), self._t0_ms, missing=self._missing
+            gaze_x, gaze_y, float(sample.getTime()), missing=self._missing
         )
 
     def send_message(self, text: str) -> None:  # pragma: no cover - requires the host
@@ -304,6 +358,40 @@ class EyeLinkTracker:
         """
         if self._link is not None:
             self._link.sendMessage(text)
+
+    def begin_trial(self, trial_id: str, areas: Sequence[InterestArea]) -> None:
+        """Open a trial in the data file and attach its interest areas.
+
+        Called by the session before the passage's drift check. The messages
+        are written whether or not the tracker is recording, as in SR Research's
+        trial structure.
+        """
+        self._trials += 1
+        ias_file = None
+        if self.interest_area_files:
+            # Named by the data file and the trial's position in the session, so
+            # sets from different sessions or repeated passages cannot collide.
+            local_edf = Path(self.receive_to or self.edf_name)
+            ias_file = f"{local_edf.stem}_{self._trials:03d}.ias"
+            write_ias(areas, local_edf.parent / ias_file)
+        for message in trial_start_messages(trial_id, ias_file):
+            self.send_message(message)
+
+    def describe(self) -> dict[str, object]:
+        """The settings the session records with its start."""
+        return {
+            "backend": "eyelink",
+            "screen_size": list(self.screen_size),
+            "sample_rate": self.sample_rate,
+            "calibration": self.calibration,
+            "eye": self.eye,
+            "edf": self.edf_name,
+        }
+
+    def end_trial(self, variables: Mapping[str, object] | None = None) -> None:
+        """Attach the trial variables and close the trial in the data file."""
+        for message in trial_end_messages(variables):
+            self.send_message(message)
 
     def stop_recording(self) -> None:  # pragma: no cover - requires the host
         if self._link is None:
@@ -322,3 +410,6 @@ class EyeLinkTracker:
             self._link.receiveDataFile(self.edf_name, self.receive_to or self.edf_name)
         self._link.close()
         self._link = None
+        if self._graphics_open:
+            self._pylink.closeGraphics()
+            self._graphics_open = False

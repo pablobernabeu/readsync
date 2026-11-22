@@ -12,8 +12,9 @@ export const RIGHT_EYE = [468, 33, 133, 159, 145];
 export const LEFT_EYE = [473, 362, 263, 386, 374];
 
 export function eyeFeature(landmarks, spec) {
-  // Iris position in the eye's own frame, as fractions of width and height. Using
-  // the eye's own axes makes the feature invariant to head roll.
+  // Iris position in the eye's own frame, as fractions of width and height, as in
+  // readsync.webcam.tracker. See there for how head roll and the frame's aspect
+  // ratio affect it.
   const [iris, a, b, up, lo] = spec;
   const ax = landmarks[a].x, ay = landmarks[a].y;
   const bx = landmarks[b].x, by = landmarks[b].y;
@@ -39,11 +40,12 @@ export function eyeOpenness(landmarks, spec) {
 }
 
 export function headPoseFromMatrix(data) {
-  // Extract (yaw, pitch, roll) in radians from a 16-element 4x4 head-pose matrix
-  // (FaceLandmarker facial transformation matrix, row-major). The exact convention
-  // matters only for naming; the angles serve as head-orientation inputs and to
-  // measure drift.
-  const r = (i, j) => data[i * 4 + j];
+  // Extract (yaw, pitch, roll) in radians from the 16 packed values of
+  // FaceLandmarker's facial transformation matrix. MediaPipe packs it in column-
+  // major order, its MatrixData default, so element (i, j) is data[j * 4 + i].
+  // The Python API unpacks the same matrix into rows, so this matches
+  // readsync.webcam.tracker.head_pose_from_matrix, which the parity fixture checks.
+  const r = (i, j) => data[j * 4 + i];
   const sy = Math.hypot(r(0, 0), r(1, 0));
   if (sy > 1e-6) {
     return {
@@ -72,7 +74,8 @@ export function signalsFromResult(result) {
 // yaw and pitch, and the products of head pose with the iris feature. The pose-by-
 // feature products let head pose change the feature's gain, not only add an offset.
 // That is what a still-head calibration held at two poses needs in order to fit
-// both poses instead of averaging them. Roll is handled by the roll-invariant feature.
+// both poses instead of averaging them. There are no roll terms, so head roll
+// while reading adds error (see readsync.webcam.gaze).
 function design(s) {
   const { fx, fy, yaw, pitch } = s;
   return [

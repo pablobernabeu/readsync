@@ -107,6 +107,73 @@ def test_emission_is_throttled_to_the_max_rate() -> None:
     assert tracker.poll(0.10) is not None  # a full interval on, it emits again
 
 
+def test_frame_jitter_does_not_lower_the_rate() -> None:
+    # A 60 Hz display with frame times up to 1 ms early or late, polled for one
+    # second at a 30 Hz cap. Every second frame should give a sample, including
+    # those that arrive early.
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=30.0)
+    jitter = [0.0, 0.001, -0.001, 0.0005, -0.0008, 0.001]
+    times = [i / 60 + jitter[i % len(jitter)] for i in range(60)]
+    emitted = [i for i, t in enumerate(times) if tracker.poll(t) is not None]
+    assert emitted == list(range(0, 60, 2))
+
+
+def test_alternating_jitter_near_the_cap_keeps_the_rate() -> None:
+    # Display periods at or just above the interval, with frames alternately
+    # late and early, once locked the tracker at half the display rate.
+    for rate_hz, jitter in ((59.94, (0.002, -0.003)), (75.0, (-0.0014, 0.0014))):
+        tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=60.0)
+        n = int(10 * rate_hz)
+        times = [i / rate_hz + jitter[i % 2] for i in range(n)]
+        emitted = sum(tracker.poll(t) is not None for t in times)
+        assert emitted >= 10 * min(rate_hz, 60.0) - 10
+
+
+def test_a_cap_at_the_display_rate_takes_every_frame() -> None:
+    # A 60 Hz display with frame times up to 2 ms early or late and a 60 Hz cap.
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=60.0)
+    jitter = [0.0, 0.002, -0.002, 0.0015, -0.0018, 0.002, -0.002]
+    times = [i / 60 + jitter[i % len(jitter)] for i in range(120)]
+    assert all(tracker.poll(t) is not None for t in times)
+
+
+def test_the_rate_cap_holds_on_a_fast_display() -> None:
+    # A 144 Hz display polled for two seconds at a 30 Hz cap.
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=30.0)
+    emitted = [i for i in range(288) if tracker.poll(i / 144) is not None]
+    assert 59 <= len(emitted) <= 61
+
+
+def test_a_slightly_early_poll_counts_as_on_time() -> None:
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=10.0)
+    assert tracker.poll(0.0) is not None
+    assert tracker.poll(0.095) is not None  # due at 0.1
+
+
+def test_a_late_sample_is_not_followed_at_once() -> None:
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=10.0)
+    assert tracker.poll(0.0) is not None
+    assert tracker.poll(0.195) is not None  # due at 0.1, taken late
+    assert tracker.poll(0.2) is None  # less than a quarter of an interval after it
+    assert tracker.poll(0.3) is not None
+
+
+def test_repeated_or_earlier_poll_times_are_ignored() -> None:
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=10.0)
+    assert tracker.poll(0.0) is not None
+    assert tracker.poll(0.4) is not None
+    assert tracker.poll(0.4) is None
+    assert tracker.poll(0.39) is None
+
+
+def test_the_schedule_restarts_after_a_long_gap() -> None:
+    tracker = _running_tracker(ScriptedEstimator((0.5, 0.5, 1.0)), max_rate_hz=10.0)
+    assert tracker.poll(0.0) is not None
+    assert tracker.poll(1.0) is not None  # a poll after a gap of 1 s
+    assert tracker.poll(1.05) is None  # the next sample is due at 1.1
+    assert tracker.poll(1.1) is not None
+
+
 def test_calibrate_delegates_to_the_estimator() -> None:
     estimator = ScriptedEstimator((0.5, 0.5, 1.0))
     tracker = WebcamTracker(estimator=estimator, camera=ScriptedCamera())
@@ -154,21 +221,32 @@ def test_pixels_to_degrees_matches_the_arctangent() -> None:
 
 
 def test_angular_error_and_mean() -> None:
-    one = angular_error((0.0, 0.0), (10.0, 0.0), viewing_distance_mm=573.0, px_per_mm=1.0)
+    geometry = {"viewing_distance_mm": 573.0, "px_per_mm": 1.0, "eye_px": (0.0, 0.0)}
+    one = angular_error((0.0, 0.0), (10.0, 0.0), **geometry)
     assert one == pytest.approx(1.0, abs=0.01)
 
-    mean = mean_angular_error(
-        [(0.0, 0.0), (0.0, 0.0)],
-        [(10.0, 0.0), (0.0, 10.0)],
-        viewing_distance_mm=573.0,
-        px_per_mm=1.0,
-    )
+    mean = mean_angular_error([(0.0, 0.0), (0.0, 0.0)], [(10.0, 0.0), (0.0, 10.0)], **geometry)
     assert mean == pytest.approx(1.0, abs=0.01)
+
+
+def test_angular_error_accounts_for_where_the_points_lie() -> None:
+    # Two points 300 and 400 mm to the side of the line of sight at 600 mm
+    # subtend atan(400/600) - atan(300/600), not atan(100/600).
+    error = angular_error(
+        (300.0, 0.0), (400.0, 0.0), viewing_distance_mm=600.0, px_per_mm=1.0, eye_px=(0.0, 0.0)
+    )
+    expected = math.degrees(math.atan(400 / 600) - math.atan(300 / 600))
+    assert error == pytest.approx(expected, abs=1e-9)
+    # The angle is symmetric and does not depend on screen orientation.
+    vertical = angular_error(
+        (0.0, 300.0), (0.0, 400.0), viewing_distance_mm=600.0, px_per_mm=1.0, eye_px=(0.0, 0.0)
+    )
+    assert vertical == pytest.approx(expected, abs=1e-9)
 
 
 def test_mean_angular_error_rejects_empty() -> None:
     with pytest.raises(ValueError, match="at least one"):
-        mean_angular_error([], [], viewing_distance_mm=573.0, px_per_mm=1.0)
+        mean_angular_error([], [], viewing_distance_mm=573.0, px_per_mm=1.0, eye_px=(0.0, 0.0))
 
 
 def _quadratic(fx: float, fy: float) -> tuple[float, float]:
@@ -268,7 +346,7 @@ def test_eye_feature_values_in_eye_frame() -> None:
     assert fy == pytest.approx(0.25)  # 0.02 below centre over a 0.08 lid gap
 
 
-def test_eye_feature_is_roll_invariant() -> None:
+def test_eye_feature_is_unchanged_when_eye_and_head_roll_together() -> None:
     from readsync.webcam.tracker import MediaPipeIrisEstimator
 
     landmarks = _eye_landmarks((0.47, 0.52))
@@ -461,3 +539,51 @@ def test_fit_from_fixations_averages_then_fits() -> None:
 def test_fit_from_fixations_rejects_length_mismatch() -> None:
     with pytest.raises(ValueError, match="same length"):
         fit_from_fixations([[(0.0, 0.0)]], [(0.0, 0.0), (1.0, 1.0)])
+
+
+def test_estimator_maps_signals_with_a_head_aware_model_and_flags_blinks() -> None:
+    from readsync.webcam import MediaPipeIrisEstimator
+
+    signals = [
+        GazeSignals(fx=0.2 + 0.6 * nx, fy=0.1 + 0.5 * ny, yaw=y, pitch=0.0, roll=0.0, openness=0.3)
+        for y in (0.0, 0.2)
+        for nx in (0.1, 0.5, 0.9)
+        for ny in (0.1, 0.5, 0.9)
+    ]
+    targets = [(0.1 + 0.8 * ((s.fx - 0.2) / 0.6), (s.fy - 0.1) / 0.5) for s in signals]
+    model = HeadAwareGazeModel.fit(signals, targets)
+    estimator = MediaPipeIrisEstimator(model=model)
+
+    open_eye = GazeSignals(fx=0.5, fy=0.35, yaw=0.1, pitch=0.0, roll=0.0, openness=0.3)
+    nx, ny, confidence = estimator.estimate_from_signals(open_eye)
+    assert (nx, ny) == pytest.approx(model.map(open_eye))
+    assert confidence == 1.0
+
+    blink = GazeSignals(fx=0.5, fy=0.35, yaw=0.1, pitch=0.0, roll=0.0, openness=0.05)
+    assert estimator.estimate_from_signals(blink)[2] == 0.0
+
+    turned = GazeSignals(fx=0.5, fy=0.35, yaw=0.2 + math.radians(20), pitch=0.0, roll=0.0,
+                         openness=0.3)
+    assert estimator.estimate_from_signals(turned)[2] == 0.0
+
+
+def test_estimator_falls_back_to_the_iris_calibration_and_needs_one() -> None:
+    from readsync.webcam import MediaPipeIrisEstimator
+
+    calibration = AffineCalibration.fit(
+        [(0.4, 0.4), (0.6, 0.4), (0.4, 0.6), (0.6, 0.6)],
+        [(0.2, 0.2), (0.8, 0.2), (0.2, 0.8), (0.8, 0.8)],
+    )
+    signals = GazeSignals(fx=0.5, fy=0.5, yaw=0.0, pitch=0.0, roll=0.0, openness=0.3)
+    nx, ny, confidence = MediaPipeIrisEstimator(calibration=calibration).estimate_from_signals(
+        signals
+    )
+    assert (nx, ny, confidence) == pytest.approx((0.5, 0.5, 1.0))
+    assert MediaPipeIrisEstimator().estimate_from_signals(signals) is None
+
+
+def test_an_off_screen_estimate_is_clamped_and_marked_invalid() -> None:
+    tracker = _running_tracker(ScriptedEstimator((1.3, 0.5, 1.0)))
+    sample = tracker.poll(0.0)
+    assert sample is not None and not sample.valid
+    assert sample.x == pytest.approx(999)

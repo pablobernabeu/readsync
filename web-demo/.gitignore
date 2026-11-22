@@ -1,5 +1,5 @@
 # Vendored MediaPipe runtime and model, fetched by scripts/fetch-assets.mjs.
-# They are large binaries, not source, so they are not committed.
+# They are third-party builds and a large model, so they are not committed.
 public/vendor/
 public/models/*.task
 

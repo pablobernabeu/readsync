@@ -49,3 +49,39 @@ def test_export_refuses_a_tampered_log(tmp_path: Path) -> None:
     path.write_bytes(b"\n".join([lines[0], lines[2]]) + b"\n")
     with pytest.raises(IntegrityError):
         log_to_csv(log, tmp_path / "out.csv")
+
+
+def test_interest_areas_export_one_row_per_word_with_regions(tmp_path: Path) -> None:
+    from readsync.export import interest_areas_to_csv
+    from readsync.stimuli import StimulusItem
+    from readsync.text import FixedWidthLayout, Passage, Region
+
+    layout = FixedWidthLayout(char_width=10, line_height=30, max_chars_per_line=12, x0=5, y0=7)
+    item = StimulusItem(
+        passage=Passage(id="p1", text="The cat sat on the mat."),
+        regions=[Region(id="target", start=1, end=3, layer="vocabulary")],
+    )
+    plain = Passage(id="p2", text="Hello")
+    out = interest_areas_to_csv([item, plain], tmp_path / "ia.csv", layout)
+    with out.open(encoding="utf-8", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    assert [r["passage"] for r in rows] == ["p1"] * 6 + ["p2"]
+    assert rows[0] == {
+        "passage": "p1", "word": "0", "text": "The", "line": "0",
+        "x1": "5", "y1": "7", "x2": "35", "y2": "37",
+        "region": "", "layer": "", "role": "",
+    }
+    assert (rows[1]["region"], rows[1]["layer"], rows[1]["role"]) == (
+        "target", "vocabulary", "target",
+    )
+    assert rows[3]["line"] == "1"  # 'on' wraps to the second line
+    assert rows[6]["region"] == ""
+
+
+def test_lists_are_exported_as_json(tmp_path: Path) -> None:
+    import json
+
+    out = events_to_csv([{"type": "session_start", "planned": ["p1", "p 2"]}], tmp_path / "s.csv")
+    with out.open(encoding="utf-8", newline="") as fh:
+        row = next(csv.DictReader(fh))
+    assert json.loads(row["planned"]) == ["p1", "p 2"]

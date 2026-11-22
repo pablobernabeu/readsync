@@ -1,82 +1,80 @@
 # Stimuli
 
-Reading materials for the toolkit, with real psycholinguistic annotation. The
-bundled frequencies are Zipf values from the
-[wordfreq](https://pypi.org/project/wordfreq/) package, so every number is real
-and the files are reproducible from the build script, never hand-entered. The
-bundled sets are development stand-ins: a study that registers SUBTLEX-UK as its
-frequency norm rebuilds them from a locally supplied SUBTLEX-UK export
-(`python stimuli/build_stimuli.py --subtlex path/to/SUBTLEX-UK.txt`), which is
-not redistributed here.
+Reading materials for readsync, stored as JSON with word-level frequency annotation. Every Zipf value is looked up from a frequency source when the files are built, so none is entered by hand, and `build_stimuli.py` regenerates all three files. The bundled values come from the wordfreq package (Speer, 2022), which makes the sets usable for development. A study that registers SUBTLEX-UK (van Heuven et al., 2014) as its frequency norm rebuilds them from a locally supplied export, which is not redistributed here:
+
+```bash
+python stimuli/build_stimuli.py --subtlex path/to/SUBTLEX-UK.txt
+```
 
 ## Sets
 
-- **`controlled_freq_en.json`** holds the controlled word-frequency reading set.
-  Each pair is a matched frame sentence that is identical except for one target
-  word, and the two target words have the same length, so lexical frequency is the
-  only manipulated property. The target is annotated as a region with layer
-  `vocabulary` (the length set's targets carry layer `decoding`). Twelve pairs
-  make up the 24 items. High targets are
-  Zipf 4.5 and above, low targets 3.6 and below. The frequency effect on fixation
-  and gaze durations is a standard word-level signature, and the size of that
-  effect separates fluent, second-language and dyslexic readers, which is what
-  this set is for.
-- **`controlled_length_en.json`** holds the matching word-length set. Each pair
-  differs only in the target word, which is short in one member and long in the
-  other while the two are matched in frequency, so word length is the only
-  manipulated property. The length effect is the other standard word-level
-  signature and complements the frequency set for the same diagnostic purpose.
-- **`naturalistic_en.json`** holds six neutral connected-prose passages for
-  practice and for global reading measures, each with a yes/no comprehension
-  question and its answer, which gives the offline comprehension measure that
-  pairs with the online eye movements. It is not a controlled corpus.
+`controlled_freq_en.json` is a word-frequency set. The two members of each pair are the same sentence with a different target word, and the two targets have the same number of letters, so frequency is the property deliberately varied. A high-frequency target has a Zipf value of at least 4.5 and a low-frequency target at most 3.6. The two targets of each pair belong to the same semantic category, such as two drinks, two buildings or two people, and the frame was written to suit both. The set has 15 pairs, and each target is annotated as a one-word region with the layer `vocabulary`.
 
-Predictability is not normed in the controlled sets, and cloze data would be
-needed before analysis.
+`controlled_length_en.json` is the matching word-length set. The long target in each pair has at least three letters more than the short one, and their Zipf values are no more than 0.6 apart. In every pair, the long target also has more syllables, so the set contrasts length in letters and in syllables together. The two targets of each pair are close in meaning, though only some are synonyms. The set has 17 pairs, and each target is annotated as a one-word region with the layer `decoding`.
 
-All three sets are original and are released under CC-BY-4.0.
+The controlled sets hold constant only what they were built to hold constant. Other properties of the chosen words, such as morphological complexity, are not controlled, and neither plausibility in the frame nor predictability has been normed. Predictability affects reading times separately from frequency (Shain, 2024), so the targets' predictability in their frames should be normed, by cloze or with a language model, before either contrast is analysed. A word read twice in a session is affected by repetition, so the build reports any target word, or an inflection of it, that occurs in the text or questions of another item in any bundled set. Compounds that contain a target, such as 'farmhouse' for 'house', are not detected. The current sets have neither.
+
+The frequency and length effects on fixation durations differ between readers. Both are larger in readers with weaker verbal skills (Kuperman & Van Dyke, 2011) and in dyslexic readers (Hawelka et al., 2010), and, measured within individuals, the length effect has proved more reliable across sessions than the frequency effect (Haller et al., 2026). The sets are small, so estimates for a single reader will be noisy.
+
+`naturalistic_en.json` holds short passages of neutral connected prose for practice and for global reading measures, each with a yes/no comprehension question and its answer. No lexical property is controlled in them, and they carry no annotated regions.
+
+Each file is released under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), as it states, because its Zipf values come from wordfreq, whose data are distributed under that licence. The sentences, passages and questions are original and are also released on their own under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). wordfreq's English data include subtitles from OpenSubtitles and the freely available SUBTLEX-US (Brysbaert & New, 2009) and SUBTLEX-UK (van Heuven et al., 2014) lists. Each file credits these three sources and wordfreq. The licence section of wordfreq's documentation lists its other sources. The bundled files were built with wordfreq 3.1.1. Its changelog records no change to the data since the cited 3.0.2 release, so the values are those of that release.
 
 ## Format
 
-JSON with study metadata (`name`, `language`, `license`, `source`, `citation`,
-`design`) and an `items` list. Each item has an `id` and `text`, and may carry a
-`condition`, a `target` (`word_index`, `word`, `zipf`, `length`), per-word
-`words` (`index`, `text`, `zipf`), multi-word `regions` and comprehension
-`questions`. A region is `{"id", "start", "end", "layer", "role"}`, with `start`
-and `end` word indices (`end` exclusive) and `layer` naming the sub-process the
-region loads; the label is free text agreed per study, and these sets use
-`decoding`, `vocabulary` and `integration`. `role` separates a `target` region
-from a matched `comparison`. A question is `{"id", "text", "answer", "kind",
-"region"}`, where `kind` is `literal` or `inferential` and `region` names the
-region it probes; the simpler `question`/`answer` pair still loads as a
-one-question list. An item-level `question_position` of `before` shows the
-question ahead of the passage, reproducing the information-seeking regime used
-by naturalistic reading corpora. Spans and region references are validated at load. Load
-with `readsync.load_stimulus_set` for the full annotation, or
-`readsync.load_passages` for the passages alone.
+A stimulus file is JSON with study metadata (`name`, `language`, `license`, `source`, `citation` and `design`) and an `items` list. Each item has an `id` and `text`, and may carry a `condition`, a `target` (`word_index`, `word`, `zipf` and `length`), per-word `words` (`index`, `text` and `zipf`), multi-word `regions` and comprehension `questions`.
+
+A region is `{"id", "start", "end", "layer", "role"}`, with `start` and `end` as word indices and `end` exclusive. `layer` names the component of reading that the region is built to load. It is free text agreed per study: the bundled sets use `vocabulary` and `decoding`, and a study of sentence integration might add `integration`. `role` separates a `target` region from a matched `comparison` region. The bundled sets have target regions only.
+
+A question is `{"id", "text", "answer", "kind", "region"}`, where `kind` is `literal` or `inferential` and `region` names the region it probes. A simpler `question` and `answer` pair still loads as a one-question list. Questions are asked after the passage. An item-level `question_position` of `before` also shows them before the passage, as in the information-seeking condition of the OneStop corpus (Malmaud et al., 2020; Berzak et al., 2025), which varies the regime between participants rather than between items.
+
+Spans and region references are checked when a file is loaded. `readsync.load_stimulus_set` returns the full annotation and `readsync.load_passages` the passages alone.
 
 ## Rebuilding
 
 ```bash
-pip install wordfreq
+pip install -e ".[stimuli]"
 python stimuli/build_stimuli.py
 ```
 
-The script writes all three JSON files. Targets are checked against the frequency
-thresholds and dropped with a message if they do not separate, so the kept set is
-always a clean manipulation.
+The script writes all three files, records the frequency source in each file's `source` field, with the wordfreq version or the SUBTLEX-UK file name, and cites that source. Frequency pairs whose targets miss the thresholds, and length pairs that are too close in length or too far apart in frequency, are dropped with a message. A word missing from the frequency source is written with a null Zipf value, and a pair whose target is missing is dropped. A build from SUBTLEX-UK labels its files CC BY 4.0, a licence that then covers only the sentences, passages and questions, and the files ask the reader to check the export's terms before redistributing the Zipf values. The browser demo keeps a copy of `controlled_freq_en.json` in `web-demo/public/stimuli/`, and a test fails if the two differ, so copy the rebuilt file there too.
 
-## Adding recognised corpora
+## Adding published corpora
 
-Published eye-tracking and reading corpora load through the same `load_passages`
-or `load_stimulus_set` once converted to this format. Several are not bundled here
-because of their licences:
+Published reading corpora load through the same functions once converted to this format. None is bundled here.
 
-- **Natural Stories** (Futrell et al., 2021) is CC BY-NC-SA 4.0. The
-  non-commercial and share-alike terms are incompatible with this MIT repository,
-  so fetch it separately under that licence if you use it.
-- **GECO** (Cop et al., 2017) uses a novel whose copyright status varies by
-  country, so check before redistributing the text.
-- **MECO** (Siegelman et al., 2022; Kuperman et al., 2023) is the most directly
-  relevant multilingual reading corpus. Obtain its materials from the project and
-  convert them with attribution.
+Natural Stories (Futrell et al., 2021) is a set of ten English stories with self-paced reading times. It is distributed under CC BY-NC-SA 4.0, whose non-commercial term does not fit the MIT licence of the code or the CC BY-SA 4.0 licence of the bundled sets, so fetch it from its repository under its own terms.
+
+GECO (Cop et al., 2017) records eye movements during the reading of Agatha Christie's novel The Mysterious Affair at Styles (Cop et al., 2015). Its bilingual participants read half of the novel in their first language, Dutch, and half in English. The novel was first published in 1920 and is in the public domain in the United States, but it remains in copyright in the United Kingdom and the European Union until the end of 2046. The Dutch translation is a separate work with its own rights, so check the position in your jurisdiction before redistributing either text.
+
+MECO (Siegelman et al., 2022; Kuperman et al., 2023) is a multilingual eye-tracking corpus of text reading, with first-language data in thirteen languages in its first release and English second-language data from readers of twelve first languages. Each text in the first-language release is followed by four yes/no comprehension questions, which this format represents directly. Its data and materials are on OSF under CC BY 4.0, for first-language reading at https://doi.org/10.17605/OSF.IO/3527A and for English as a second language at https://doi.org/10.17605/OSF.IO/Q9H43, so they can be converted and redistributed with attribution.
+
+## References
+
+Berzak, Y., Malmaud, J., Shubi, O., Meiri, Y., Lion, E., & Levy, R. (2025). OneStop: A 360-participant English eye tracking dataset with different reading regimes. *Scientific Data*, *12*(1), Article 1995. https://doi.org/10.1038/s41597-025-06272-2
+
+Brysbaert, M., & New, B. (2009). Moving beyond Kučera and Francis: A critical evaluation of current word frequency norms and the introduction of a new and improved word frequency measure for American English. *Behavior Research Methods*, *41*(4), 977–990. https://doi.org/10.3758/BRM.41.4.977
+
+Cop, U., Dirix, N., Drieghe, D., & Duyck, W. (2017). Presenting GECO: An eyetracking corpus of monolingual and bilingual sentence reading. *Behavior Research Methods*, *49*(2), 602–615. https://doi.org/10.3758/s13428-016-0734-0
+
+Cop, U., Drieghe, D., & Duyck, W. (2015). Eye movement patterns in natural reading: A comparison of monolingual and bilingual reading of a novel. *PLOS ONE*, *10*(8), Article e0134008. https://doi.org/10.1371/journal.pone.0134008
+
+Futrell, R., Gibson, E., Tily, H. J., Blank, I., Vishnevetsky, A., Piantadosi, S. T., & Fedorenko, E. (2021). The Natural Stories corpus: A reading-time corpus of English texts containing rare syntactic constructions. *Language Resources and Evaluation*, *55*(1), 63–77. https://doi.org/10.1007/s10579-020-09503-7
+
+Haller, P., Ding, C., Stegenwallner-Schütz, M., Reich, D. R., Koncic, I., Makowski, S., & Jäger, L. A. (2026). Replicate me if you can: Assessing measurement reliability of individual differences in reading across measurement occasions and methods. *Cognitive Science*, *50*(1), Article e70121. https://doi.org/10.1111/cogs.70121
+
+Hawelka, S., Gagl, B., & Wimmer, H. (2010). A dual-route perspective on eye movements of dyslexic readers. *Cognition*, *115*(3), 367–379. https://doi.org/10.1016/j.cognition.2009.11.004
+
+Kuperman, V., Siegelman, N., Schroeder, S., Acartürk, C., Alexeeva, S., Amenta, S., Bertram, R., Bonandrini, R., Brysbaert, M., Chernova, D., Da Fonseca, S. M., Dirix, N., Duyck, W., Fella, A., Frost, R., Gattei, C. A., Kalaitzi, A., Lõo, K., Marelli, M., … Usal, K. A. (2023). Text reading in English as a second language: Evidence from the Multilingual Eye-Movements Corpus. *Studies in Second Language Acquisition*, *45*(1), 3–37. https://doi.org/10.1017/S0272263121000954
+
+Kuperman, V., & Van Dyke, J. A. (2011). Effects of individual differences in verbal skills on eye-movement patterns during sentence reading. *Journal of Memory and Language*, *65*(1), 42–73. https://doi.org/10.1016/j.jml.2011.03.002
+
+Malmaud, J., Levy, R., & Berzak, Y. (2020). Bridging information-seeking human gaze and machine reading comprehension. In R. Fernández & T. Linzen (Eds.), *Proceedings of the 24th Conference on Computational Natural Language Learning* (pp. 142–152). Association for Computational Linguistics. https://doi.org/10.18653/v1/2020.conll-1.11
+
+Shain, C. (2024). Word frequency and predictability dissociate in naturalistic reading. *Open Mind*, *8*, 177–201. https://doi.org/10.1162/opmi_a_00119
+
+Siegelman, N., Schroeder, S., Acartürk, C., Ahn, H.-D., Alexeeva, S., Amenta, S., Bertram, R., Bonandrini, R., Brysbaert, M., Chernova, D., Da Fonseca, S. M., Dirix, N., Duyck, W., Fella, A., Frost, R., Gattei, C. A., Kalaitzi, A., Kwon, N., Lõo, K., … Kuperman, V. (2022). Expanding horizons of cross-linguistic research on reading: The Multilingual Eye-movement Corpus (MECO). *Behavior Research Methods*, *54*(6), 2843–2863. https://doi.org/10.3758/s13428-021-01772-6
+
+Speer, R. (2022). *rspeer/wordfreq: v3.0* (Version 3.0.2) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.7199437
+
+van Heuven, W. J. B., Mandera, P., Keuleers, E., & Brysbaert, M. (2014). SUBTLEX-UK: A new and improved word frequency database for British English. *Quarterly Journal of Experimental Psychology*, *67*(6), 1176–1190. https://doi.org/10.1080/17470218.2013.850521

@@ -1,40 +1,45 @@
 """Append-only, encrypted, tamper-evident event log.
 
-A reading session produces a stream of events: word and region entries and
-exits, passage boundaries, participant responses, tracker checks and gaze
-samples. ``EventLog`` writes each event as one encrypted line, so the file is
-opaque at rest and any alteration is detected on read. Records form a hash
-chain, so edits, deletion or reordering of interior records are detected.
-Removing the newest records leaves a valid shorter chain, so completeness is
-judged against the closing ``session_end`` event that every completed session
-appends; a study needing stronger assurance records the final chain hash out of
-band.
+A reading session produces a stream of events: word entries, region entries
+and exits, passage boundaries, participant responses, tracker checks and gaze
+samples. ``EventLog`` writes each event as one encrypted line, so the contents
+are unreadable at rest and an altered record fails authentication when read.
+Records form a hash chain, so deleting or reordering records inside the log is
+detected. Removing the newest records leaves a valid shorter chain, so
+completeness is judged by the closing ``session_end`` event, whose ``status`` is
+``completed`` for a session that finished normally. A study that needs stronger
+assurance can store the final chain hash separately.
 
-The log is append-only by design and assumes a single writer per file: each
-instance caches the chain tail at construction, so two processes appending to
-one file would fork the chain. It is never rewritten in place, which suits a
-research record that must be auditable.
+The log is append-only and assumes a single writer per file. Each instance
+caches the chain tail at construction, so two processes appending to one file
+would fork the chain. Appended records reach the operating system at once, and
+:meth:`EventLog.sync` asks it to commit them to disk, which the session does at
+the end of every passage. If the machine fails mid-write, the last line can be
+left incomplete, so the log no longer verifies or opens, and
+:func:`recover_events` returns every record before the damage.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import os
 from collections.abc import Iterator, Mapping
 from pathlib import Path
 from typing import Any
 
-from .security import decrypt, encrypt
+from .security import DecryptionError, decrypt, encrypt
 
-__all__ = ["EventLog", "IntegrityError"]
+__all__ = ["EventLog", "IntegrityError", "recover_events"]
 
 _GENESIS = "0" * 64
 
 
 class IntegrityError(Exception):
-    """Raised when the hash chain does not verify, i.e. interior records were
-    altered, removed or reordered. A truncated tail leaves a valid shorter
-    chain and is judged by the presence of the closing ``session_end`` event."""
+    """Raised when the hash chain does not verify because records inside the log
+    were removed or reordered. An altered record fails authentication first and
+    raises :class:`readsync.security.DecryptionError`. A truncated tail leaves a
+    valid shorter chain and is judged by the closing ``session_end`` event."""
 
 
 def _chain_hash(prev_hash: str, payload: bytes) -> str:
@@ -98,10 +103,28 @@ class EventLog:
                 record["_payload"] = payload
                 yield record
 
-    def events(self) -> list[dict[str, Any]]:
-        """Decrypt, verify the full chain, and return the events in order.
+    @property
+    def head(self) -> tuple[int, str]:
+        """The number of records and the chain hash of the last one.
 
-        Raises :class:`IntegrityError` if verification fails.
+        Storing the head separately from the log, for example in the study's
+        records at the end of a session, lets a later reader check that the log
+        is complete and is the file it claims to be.
+        """
+        return self._seq, self._last_hash
+
+    def sync(self) -> None:
+        """Ask the operating system to commit the log to disk."""
+        if not self.path.exists():
+            return
+        with self.path.open("rb+") as fh:
+            os.fsync(fh.fileno())
+
+    def events(self) -> list[dict[str, Any]]:
+        """Decrypt, verify the full chain and return the events in order.
+
+        Raises :class:`readsync.security.DecryptionError` if a record fails
+        authentication and :class:`IntegrityError` if the chain is broken.
         """
         out: list[dict[str, Any]] = []
         last_hash = _GENESIS
@@ -114,3 +137,33 @@ class EventLog:
 
     def __len__(self) -> int:
         return self._seq
+
+
+def recover_events(path: str | Path, *, key: bytes) -> tuple[list[dict[str, Any]], str | None]:
+    """Return a log's events up to the first record that fails verification.
+
+    The second value describes the failure, or is ``None`` when the whole log
+    verifies. Use this to recover a session whose log ends in a damaged record,
+    for example after a power cut, since such a log cannot be opened as an
+    :class:`EventLog`. Records after the failure are not returned, because they
+    cannot be trusted.
+    """
+    out: list[dict[str, Any]] = []
+    last_hash = _GENESIS
+    seq = 0
+    with Path(path).open("rb") as fh:
+        for raw in fh:
+            line = raw.strip()
+            if not line:
+                continue
+            try:
+                payload = decrypt(line, key)
+                record = json.loads(payload)
+            except (DecryptionError, ValueError) as exc:
+                return out, f"record {seq} could not be read: {exc}"
+            if record.get("seq") != seq or record.get("prev") != last_hash:
+                return out, f"chain broken at record {seq}"
+            last_hash = _chain_hash(last_hash, payload)
+            out.append(record["event"])
+            seq += 1
+    return out, None

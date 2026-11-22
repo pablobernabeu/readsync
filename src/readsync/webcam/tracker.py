@@ -2,16 +2,11 @@
 
 This wires a camera and a gaze estimator into the
 :class:`readsync.trackers.Tracker` protocol, so a session can run on a webcam
-exactly as it runs on the infrared tracker, with nothing else changed. It is the
-apparatus for the methods strand, never a substitute for the research-grade
-device. Webcam gaze is far coarser in space and slower in time, so it cannot
-support word-level reading measures. The subpackage docstring states where it is
-nonetheless useful and what the strand aims to improve.
-
-The estimation comes from existing tooling and is not reimplemented here.
-``GazeEstimator`` and ``FrameSource`` are narrow protocols, so a published model
-plugs in behind them. The tracker's own logic, which is rate limiting, confidence
-gating and pixel scaling, is pure and is tested without a camera.
+with only the tracker swapped. Landmark detection comes from MediaPipe's
+FaceLandmarker, while the gaze features and the calibration maps are implemented
+here. ``GazeEstimator`` and ``FrameSource`` are narrow protocols, so another
+estimator or camera can be used instead. The tracker's own logic, which is rate
+limiting, confidence gating and pixel scaling, runs without a camera.
 """
 
 from __future__ import annotations
@@ -38,6 +33,7 @@ __all__ = [
     "OpenCVCamera",
     "WebcamTracker",
     "Calibration",
+    "SignalModel",
     "AffineCalibration",
     "PolynomialCalibration",
     "GazeSignals",
@@ -64,7 +60,7 @@ class GazeEstimator(Protocol):
     in ``[0, 1]``. It returns ``None`` when no gaze can be estimated, for example
     when no face is found or the estimator has not been calibrated. Mapping the
     eye to screen coordinates needs a per-participant calibration, which is the
-    estimator's responsibility, exactly as in established browser tooling.
+    estimator's responsibility.
     """
 
     def estimate(self, frame: Any) -> tuple[float, float, float] | None: ...
@@ -81,15 +77,17 @@ def _to_pixels(nx: float, ny: float, screen_size: tuple[int, int]) -> tuple[floa
 class OpenCVCamera:
     """A frame source backed by OpenCV ``VideoCapture``.
 
-    OpenCV is optional and imported lazily, so this module imports without it.
-    Reading a frame needs a camera, so the read path runs in the lab and not in
-    continuous integration. Frames are returned in OpenCV's BGR order, so an
-    estimator that expects RGB must convert them.
+    OpenCV is optional and imported only when the camera is opened, so this
+    module imports without it. OpenCV captures in BGR order. Frames are converted
+    to RGB, the order MediaPipe expects, unless ``rgb`` is false. Reading a frame
+    needs a camera, so this path is not covered by the test suite.
     """
 
-    def __init__(self, device_index: int = 0) -> None:
+    def __init__(self, device_index: int = 0, *, rgb: bool = True) -> None:
         self.device_index = device_index
+        self.rgb = rgb
         self._cap: Any = None
+        self._cv2: Any = None
 
     def _ensure_cap(self) -> Any:  # pragma: no cover - needs a camera
         if self._cap is None:
@@ -100,12 +98,15 @@ class OpenCVCamera:
                     "OpenCV (cv2) is not available. Install the 'webcam' extra "
                     '(pip install "readsync[webcam]") to capture from a camera.'
                 ) from exc
+            self._cv2 = cv2
             self._cap = cv2.VideoCapture(self.device_index)
         return self._cap
 
     def read(self) -> Any | None:  # pragma: no cover - needs a camera
         ok, frame = self._ensure_cap().read()
-        return frame if ok else None
+        if not ok:
+            return None
+        return self._cv2.cvtColor(frame, self._cv2.COLOR_BGR2RGB) if self.rgb else frame
 
     def close(self) -> None:  # pragma: no cover - needs a camera
         if self._cap is not None:
@@ -118,10 +119,15 @@ class WebcamTracker:
 
     It implements the :class:`readsync.trackers.Tracker` protocol, so it is passed
     to a :class:`~readsync.session.ReadingSession` in place of the infrared
-    tracker with no other change. Two properties keep it explicit about webcam
-    limits. It emits at most ``max_rate_hz`` samples a second, which reflects the
-    low frame rate of a webcam, and it marks a sample invalid when the estimator's
-    confidence is below ``min_confidence`` or when no gaze is returned.
+    tracker with no other change. It emits at most ``max_rate_hz`` samples a
+    second on average, which reflects the low frame rate of a webcam, and it
+    marks a sample invalid when the estimator's confidence is below
+    ``min_confidence``, when the estimate falls off the screen or when no gaze
+    is returned. Each sample is
+    stamped with the time the session polled it, so the delay between the
+    camera's exposure and the estimate is not recorded. The camera read and the
+    estimate run inside the session's display loop, so a slow estimate can
+    delay the next frame.
 
     Parameters
     ----------
@@ -134,7 +140,15 @@ class WebcamTracker:
         Display size in pixels, used to scale normalised gaze to the same pixels
         as the interest areas.
     max_rate_hz:
-        The cap on emitted samples per second.
+        The cap on emitted samples per second, averaged over time. Within one
+        recording, samples are due at intervals of ``1 / max_rate_hz`` from the
+        first sample, and a poll up to a quarter of an interval early counts as
+        on time, so jitter in the display's frame times does not delay a sample
+        to the following display frame. A sample taken late leaves the schedule
+        unchanged, so the next sample can follow it after a quarter of an
+        interval, which is the minimum spacing between samples. If a poll comes
+        two intervals or more after a sample was due, the schedule starts again
+        from that poll.
     min_confidence:
         The confidence at or above which a sample is treated as valid.
     device_index:
@@ -160,7 +174,8 @@ class WebcamTracker:
         self._camera = camera
         self._min_interval = 1.0 / max_rate_hz
         self._recording = False
-        self._last_emit: float | None = None
+        self._next_due: float | None = None
+        self._last_t: float | None = None
 
     def connect(self) -> None:
         if self._camera is None:  # pragma: no cover - needs a camera
@@ -176,7 +191,8 @@ class WebcamTracker:
 
     def start_recording(self) -> None:
         self._recording = True
-        self._last_emit = None
+        self._next_due = None
+        self._last_t = None
 
     def stop_recording(self) -> None:
         self._recording = False
@@ -184,18 +200,32 @@ class WebcamTracker:
     def poll(self, t: float) -> GazeSample | None:
         if not self._recording or self._camera is None:
             return None
-        if self._last_emit is not None and (t - self._last_emit) < self._min_interval:
+        interval = self._min_interval
+        quarter = 0.25 * interval
+        if self._last_t is not None and t < self._last_t + quarter:
+            return None
+        due = self._next_due
+        if due is not None and t < due - quarter:
             return None
         frame = self._camera.read()
         if frame is None:
             return None
-        self._last_emit = t
+        self._last_t = t
+        # The next sample is due one interval after this one was due, so the
+        # average rate stays at the cap even when this one was taken late. After
+        # a gap of two intervals or more, the schedule starts again from here.
+        if due is None or t - due >= 2 * interval:
+            due = t
+        self._next_due = max(due + interval, t + quarter)
         estimate = self.estimator.estimate(frame)
         if estimate is None:
             return GazeSample(t=t, x=0.0, y=0.0, valid=False)
         nx, ny, confidence = estimate
         x, y = _to_pixels(nx, ny, self.screen_size)
-        return GazeSample(t=t, x=x, y=y, valid=confidence >= self.min_confidence)
+        # An estimate off the screen is clamped to the edge for the record but
+        # marked invalid, so it cannot land on a word near the edge.
+        on_screen = 0.0 <= nx <= 1.0 and 0.0 <= ny <= 1.0
+        return GazeSample(t=t, x=x, y=y, valid=confidence >= self.min_confidence and on_screen)
 
     def close(self) -> None:
         if self._camera is not None:
@@ -239,16 +269,25 @@ class Calibration(Protocol):
     def map(self, feature: tuple[float, float]) -> tuple[float, float]: ...
 
 
+class SignalModel(Protocol):
+    """Maps one frame's gaze signals to a normalised screen position.
+
+    :class:`readsync.webcam.gaze.HeadAwareGazeModel` implements it.
+    """
+
+    def map(self, signals: GazeSignals) -> tuple[float, float]: ...
+
+
 class AffineCalibration:
     """A two-dimensional affine map from an eye feature to normalised gaze.
 
     Webcam gaze needs a per-participant calibration: a short routine where the
     reader looks at known screen positions while the eye feature is recorded, then
     a map is fitted from feature to screen. This fits the affine map
-    ``(nx, ny) = A (fx, fy) + b`` by ordinary least squares, the simplest map that
-    corrects for head position and camera placement. It is pure Python and is
-    tested. A richer regression, for example a ridge or a second-order polynomial
-    fit, can replace it behind the same :meth:`map` call.
+    ``(nx, ny) = A (fx, fy) + b`` by ordinary least squares, the simplest such
+    map. It does not compensate for head movement after calibration.
+    :class:`PolynomialCalibration` and :class:`readsync.webcam.gaze.HeadAwareGazeModel`
+    are richer alternatives.
     """
 
     def __init__(
@@ -288,10 +327,9 @@ class PolynomialCalibration:
 
     The relationship between iris position and screen position is not linear, so an
     affine map leaves systematic error, most of it near the edges of the screen.
-    Fitting a low-order polynomial removes much of that, which is the usual way to
-    improve webcam gaze accuracy. The default is second order. A small ridge
-    penalty keeps the fit stable when calibration points are few or noisy, which is
-    why this is preferred over an unregularised fit here. Pure Python and tested.
+    A low-order polynomial can absorb some of that curvature. The default is
+    second order, with a small ridge penalty that keeps the fit stable when
+    calibration points are few or noisy.
     """
 
     def __init__(
@@ -347,7 +385,7 @@ class PolynomialCalibration:
 class GazeSignals:
     """Per-frame signals for head-pose-aware gaze estimation.
 
-    ``fx`` and ``fy`` are the roll-invariant iris position within the eye. ``yaw``,
+    ``fx`` and ``fy`` are the iris position within the eye, in the eye's own axes. ``yaw``,
     ``pitch`` and ``roll`` are the head orientation in radians. ``openness`` is the
     eye-aspect ratio, which falls towards zero during a blink.
     """
@@ -365,9 +403,9 @@ def head_pose_from_matrix(matrix: Any) -> tuple[float, float, float]:
 
     Reads the rotation block of the FaceLandmarker facial transformation matrix and
     decomposes it as intrinsic z-y-x angles. The exact convention matters only for
-    naming; the three angles serve as monotone head-orientation inputs and to
-    measure drift from the calibration pose. A near-degenerate matrix falls back to
-    a zero roll rather than raising.
+    naming. The three angles serve as monotone head-orientation inputs and measure
+    how far the head leaves the calibrated range. A near-degenerate matrix falls
+    back to a zero roll instead of raising.
     """
     r = [[float(matrix[i][j]) for j in range(3)] for i in range(3)]
     sy = math.sqrt(r[0][0] * r[0][0] + r[1][0] * r[1][0])
@@ -383,31 +421,42 @@ def head_pose_from_matrix(matrix: Any) -> tuple[float, float, float]:
 
 
 class MediaPipeIrisEstimator:
-    """Gaze features from the MediaPipe FaceLandmarker iris landmarks.
+    """A :class:`GazeEstimator` over MediaPipe's FaceLandmarker.
 
-    The FaceLandmarker model returns 478 landmarks, the last ten of which are the
-    irises, and the iris position within the eye is a usable gaze feature. This
-    adapter turns that established model into a :class:`GazeEstimator`: it reads
-    the iris offset and maps it to the screen with a fitted
-    :class:`AffineCalibration`. The model is the existing tool, and only the thin
-    adapter and the calibration live here.
+    FaceLandmarker returns 478 face landmarks, the last ten of which are the
+    irises, and a facial transformation matrix that gives the head pose. Each
+    frame is reduced to :class:`GazeSignals`: the iris position within the eye,
+    the head's yaw, pitch and roll and an eye-openness ratio. A fitted ``model``,
+    such as :class:`readsync.webcam.gaze.HeadAwareGazeModel`, maps all the
+    signals to the screen and so compensates for head pose. Without one, a
+    ``calibration`` maps the iris feature alone. With neither, the estimator
+    returns ``None``, because raw iris positions are not screen coordinates.
 
-    The current mediapipe wheels expose the Tasks API rather than the older
-    ``solutions`` modules, so this uses ``FaceLandmarker``, which needs a model
-    file. Download it once from :data:`FACE_LANDMARKER_URL` and pass its path as
-    ``model_path``. After that a session needs no network.
+    Confidence is 0 during a blink, when the openness falls below
+    ``blink_openness``, and when the head is more than ``max_pose_drift_deg``
+    outside the range seen at calibration, as reported by a model that offers
+    ``pose_drift_degrees``. Otherwise, it is 1. The openness is computed from
+    landmark coordinates normalised by the frame's width and height, so the same
+    threshold corresponds to different eye closures on cameras with different
+    aspect ratios. The vertical iris feature is divided by the lid gap, so a
+    partly closed eye that stays above the threshold shifts the estimate
+    downwards. :class:`WebcamTracker` marks
+    low-confidence samples invalid, so the session holds the current word and
+    region through them.
 
-    mediapipe is optional and imported lazily, so this module imports without it.
-    The landmark path needs a camera and is exercised in the example and the lab,
-    not in continuous integration. Frames must be RGB ``uint8`` arrays. Without a
-    calibration the estimator returns ``None``, because raw iris offsets are not
-    screen coordinates.
+    FaceLandmarker needs a model file. Download it once from
+    :data:`FACE_LANDMARKER_URL` and pass its path as ``model_path``. After that,
+    a session needs no network. mediapipe is optional and imported only when the
+    first frame is processed. Frames must be RGB ``uint8`` arrays, which is what
+    :class:`OpenCVCamera` returns by default. The landmark path needs a camera
+    and is not covered by the test suite, while :meth:`estimate_from_signals`
+    is.
     """
 
     # Landmark indices in the 478-point model, as
     # ``(iris, corner, corner, upper lid, lower lid)`` for each eye. The feature is
-    # measured in the eye's own axes (along the corner-to-corner line and its
-    # perpendicular), which makes it invariant to head roll.
+    # measured in the eye's own axes, along the corner-to-corner line and its
+    # perpendicular.
     _RIGHT_EYE = (468, 33, 133, 159, 145)
     _LEFT_EYE = (473, 362, 263, 386, 374)
 
@@ -415,12 +464,18 @@ class MediaPipeIrisEstimator:
         self,
         *,
         calibration: Calibration | None = None,
+        model: SignalModel | None = None,
         model_path: str = "face_landmarker.task",
         num_faces: int = 1,
+        blink_openness: float = 0.15,
+        max_pose_drift_deg: float | None = 12.0,
     ) -> None:
         self.calibration: Calibration | None = calibration
+        self.model: SignalModel | None = model
         self.model_path = model_path
         self.num_faces = num_faces
+        self.blink_openness = blink_openness
+        self.max_pose_drift_deg = max_pose_drift_deg
         self._landmarker: Any = None
         self._mp: Any = None
 
@@ -457,10 +512,14 @@ class MediaPipeIrisEstimator:
 
         The horizontal value is the iris projected onto the corner-to-corner axis
         and the vertical value is its projection onto the perpendicular, each
-        normalised by the matching span. Measuring in the eye's own axes makes the
-        feature invariant to head roll. Pure landmark arithmetic, so it is
-        unit-tested without a camera. A small floor on each span avoids a divide by
-        zero when the eye is closed.
+        normalised by the matching span. On a square frame, the feature stays the
+        same when the head and eyes roll together. It changes when the head rolls while the gaze
+        stays on one point, because the eyes then turn within the head. The
+        landmark x and y are fractions of the frame's width and height, so on a
+        non-square frame these lengths and directions are distorted by the
+        aspect ratio. A span of exactly zero is replaced with 1e-6 to avoid
+        dividing by zero, and implausible features from a nearly closed eye are
+        left for the caller to reject.
         """
         iris, corner_a, corner_b, upper, lower = spec
         ax, ay = landmarks[corner_a].x, landmarks[corner_a].y
@@ -483,7 +542,7 @@ class MediaPipeIrisEstimator:
 
     @staticmethod
     def _eye_openness(landmarks: Any, spec: tuple[int, int, int, int, int]) -> float:
-        """Eye-aspect ratio (lid gap over eye width). Falls to zero during a blink."""
+        """Eye-aspect ratio (lid gap over eye width), which falls towards zero in a blink."""
         _, corner_a, corner_b, upper, lower = spec
         width = (
             math.hypot(
@@ -524,13 +583,30 @@ class MediaPipeIrisEstimator:
             yaw = pitch = roll = 0.0
         return GazeSignals((rx + lx) / 2.0, (ry + ly) / 2.0, yaw, pitch, roll, openness)
 
+    def estimate_from_signals(self, signals: GazeSignals) -> tuple[float, float, float] | None:
+        """Map one frame's signals to ``(nx, ny, confidence)``."""
+        if self.model is not None:
+            nx, ny = self.model.map(signals)
+        elif self.calibration is not None:
+            nx, ny = self.calibration.map((signals.fx, signals.fy))
+        else:
+            return None
+        confidence = 1.0
+        if signals.openness < self.blink_openness:
+            confidence = 0.0
+        drift = getattr(self.model, "pose_drift_degrees", None)
+        if (
+            self.max_pose_drift_deg is not None
+            and drift is not None
+            and float(drift(signals)) > self.max_pose_drift_deg
+        ):
+            confidence = 0.0
+        return nx, ny, confidence
+
     def estimate(
         self, frame: Any
     ) -> tuple[float, float, float] | None:  # pragma: no cover - needs a camera
-        if self.calibration is None:
+        if self.model is None and self.calibration is None:
             return None
-        feature = self.feature(frame)
-        if feature is None:
-            return None
-        nx, ny = self.calibration.map(feature)
-        return nx, ny, 1.0
+        signals = self.signals(frame)
+        return None if signals is None else self.estimate_from_signals(signals)

@@ -1,19 +1,21 @@
 {
   "name": "Neutral naturalistic passages (English)",
   "language": "en",
-  "license": "CC-BY-4.0",
-  "source": "Constructed for readsync. Per-word frequencies are Zipf values from the wordfreq package.",
+  "license": "CC-BY-SA-4.0",
+  "source": "Constructed for readsync. Per-word frequencies are Zipf values from the wordfreq package (version 3.1.1), whose data are distributed under CC BY-SA 4.0, so this file is released under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). The sentences, passages and questions alone are also released under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).",
   "citation": [
-    "Frequencies: Speer, R. (2022). wordfreq (v3.0.2). Zenodo. https://doi.org/10.5281/zenodo.7199437",
-    "Zipf scale: van Heuven, W. J. B., Mandera, P., Keuleers, E., & Brysbaert, M. (2014). SUBTLEX-UK: A new and improved word frequency database for British English. Quarterly Journal of Experimental Psychology, 67(6), 1176-1190. https://doi.org/10.1080/17470218.2013.850521",
+    "Frequencies: Speer, R. (2022). rspeer/wordfreq: v3.0 (Version 3.0.2) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.7199437",
+    "SUBTLEX-US, freely available data included in wordfreq: Brysbaert, M., & New, B. (2009). Moving beyond Kučera and Francis: A critical evaluation of current word frequency norms and the introduction of a new and improved word frequency measure for American English. Behavior Research Methods, 41(4), 977-990. https://doi.org/10.3758/BRM.41.4.977",
+    "Subtitle data included in wordfreq: OPUS OpenSubtitles 2018, from the OpenSubtitles project, http://www.opensubtitles.org/",
+    "Zipf scale and SUBTLEX-UK, freely available data: van Heuven, W. J. B., Mandera, P., Keuleers, E., & Brysbaert, M. (2014). SUBTLEX-UK: A new and improved word frequency database for British English. Quarterly Journal of Experimental Psychology, 67(6), 1176-1190. https://doi.org/10.1080/17470218.2013.850521",
     "Frequency and length effects in reading: Rayner, K. (1998). Eye movements in reading and information processing: 20 years of research. Psychological Bulletin, 124(3), 372-422. https://doi.org/10.1037/0033-2909.124.3.372",
     "Frequency effect, updated review: Brysbaert, M., Mandera, P., & Keuleers, E. (2018). The word frequency effect in word processing: An updated review. Current Directions in Psychological Science, 27(1), 45-50. https://doi.org/10.1177/0963721417727521"
   ],
-  "design": "Short, neutral connected-prose passages for practice and for global reading measures, each with a yes/no comprehension question. Not a controlled corpus.",
+  "design": "Short, neutral passages of connected prose for practice and for global reading measures, each with a yes/no comprehension question. No lexical property is controlled.",
   "items": [
     {
       "id": "n01",
-      "text": "The market opened early on Saturday. Traders arranged their fruit and bread while the first customers walked slowly between the stalls.",
+      "text": "The market opened early on Saturday. Traders arranged their fruit and cheese while the first customers walked slowly between the stalls.",
       "question": "Did the market open early on Saturday?",
       "answer": true,
       "words": [
@@ -74,8 +76,8 @@
         },
         {
           "index": 11,
-          "text": "bread",
-          "zipf": 4.5
+          "text": "cheese",
+          "zipf": 4.57
         },
         {
           "index": 12,
@@ -126,7 +128,7 @@
     },
     {
       "id": "n02",
-      "text": "A light wind moved across the lake. Two small boats drifted near the shore as the morning sun warmed the quiet water.",
+      "text": "A light wind moved across the lake. Two small boats drifted near the shore as the morning sun rose over the hills.",
       "question": "Were there three boats on the lake?",
       "answer": false,
       "words": [
@@ -222,23 +224,23 @@
         },
         {
           "index": 18,
-          "text": "warmed",
-          "zipf": 3.47
+          "text": "rose",
+          "zipf": 4.82
         },
         {
           "index": 19,
+          "text": "over",
+          "zipf": 6.08
+        },
+        {
+          "index": 20,
           "text": "the",
           "zipf": 7.73
         },
         {
-          "index": 20,
-          "text": "quiet",
-          "zipf": 4.65
-        },
-        {
           "index": 21,
-          "text": "water.",
-          "zipf": 5.52
+          "text": "hills.",
+          "zipf": 4.46
         }
       ]
     },
@@ -475,8 +477,8 @@
     },
     {
       "id": "n05",
-      "text": "The old farmhouse stood at the end of a long track. Sheep grazed in the fields nearby, and a thin line of smoke rose from the chimney.",
-      "question": "Were sheep grazing near the farmhouse?",
+      "text": "The old farm stood at the end of a long track. Sheep grazed in the fields nearby, and a thin line of smoke rose from the chimney.",
+      "question": "Were sheep grazing near the farm?",
       "answer": true,
       "words": [
         {
@@ -491,8 +493,8 @@
         },
         {
           "index": 2,
-          "text": "farmhouse",
-          "zipf": 3.42
+          "text": "farm",
+          "zipf": 4.75
         },
         {
           "index": 3,
