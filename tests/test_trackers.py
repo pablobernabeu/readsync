@@ -10,6 +10,7 @@ the marker routing, none of which need a device.
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 
 import pytest
@@ -61,10 +62,10 @@ def test_null_tracker_is_silent_until_recording() -> None:
     assert tracker.poll(0.2) is None
 
 
-@pytest.mark.skipif(_HAS_PYLINK, reason="pylink is installed; this checks the missing-SDK path")
-def test_eyelink_connect_without_pylink_raises_clearly() -> None:
+def test_eyelink_connect_without_pylink_raises_clearly(monkeypatch: pytest.MonkeyPatch) -> None:
     from readsync.trackers import EyeLinkTracker
 
+    monkeypatch.setitem(sys.modules, "pylink", None)  # makes `import pylink` fail
     with pytest.raises(RuntimeError, match="pylink is not installed"):
         EyeLinkTracker().connect()
 

@@ -7,14 +7,12 @@ pure logic and are tested here.
 
 from __future__ import annotations
 
-import importlib.util
+import sys
 
 import pytest
 
 from readsync.presenters import PsychoPyPresenter
 from readsync.text import InterestArea, Passage, Word
-
-_HAS_PSYCHOPY = importlib.util.find_spec("psychopy") is not None
 
 
 def test_constructs_without_psychopy() -> None:
@@ -31,8 +29,8 @@ def test_coordinate_conversion_flips_and_centres() -> None:
     assert py == 400 - 320  # y: flipped about the middle
 
 
-@pytest.mark.skipif(_HAS_PSYCHOPY, reason="PsychoPy is installed; cannot open a window in CI")
-def test_start_passage_without_psychopy_raises_clearly() -> None:
+def test_start_passage_without_psychopy_raises_clearly(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(sys.modules, "psychopy", None)  # makes `import psychopy` fail
     presenter = PsychoPyPresenter(fullscreen=False)
     with pytest.raises(RuntimeError, match="PsychoPy is not installed"):
         presenter.start_passage(Passage(id="p", text="hello world"), [])

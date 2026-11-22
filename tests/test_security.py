@@ -48,7 +48,10 @@ def test_encrypt_round_trip() -> None:
 def test_decrypt_detects_tampering() -> None:
     key = new_data_key()
     token = bytearray(encrypt(b"sensitive", key))
-    token[-1] ^= 0x01
+    # Change a character in the middle to another valid base64 character. The
+    # last character can be padding, which some Python versions ignore.
+    middle = len(token) // 2
+    token[middle] = ord("A") if token[middle] != ord("A") else ord("B")
     with pytest.raises(DecryptionError):
         decrypt(bytes(token), key)
 

@@ -45,7 +45,8 @@ def test_tampering_with_a_record_is_detected(tmp_path: Path) -> None:
     log.append({"type": "b"})
     lines = path.read_bytes().splitlines()
     flipped = bytearray(lines[0])
-    flipped[-1] ^= 0x01
+    middle = len(flipped) // 2  # a ciphertext character, never base64 padding
+    flipped[middle] = ord("A") if flipped[middle] != ord("A") else ord("B")
     path.write_bytes(b"\n".join([bytes(flipped), lines[1]]) + b"\n")
     with pytest.raises((DecryptionError, IntegrityError)):
         EventLog(path, key=key).events()
