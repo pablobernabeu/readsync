@@ -66,9 +66,9 @@ BACKGROUND = 30
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 # A three by three grid of calibration targets, as fractions of the screen. The
-# grid is shown once per head pose. Calibrating at more than one pose gives the
-# head-aware model the pose variation it needs to compensate and pools enough
-# points for cross-validation.
+# grid is shown once per head pose. Calibrating at more than one pose pools
+# enough points for cross-validation and gives the head-aware model the pose
+# variation it needs to compensate for head movement.
 _AXIS = (0.1, 0.5, 0.9)
 CALIB_TARGETS = [(x, y) for y in _AXIS for x in _AXIS]
 SETTLE_SECONDS = 0.7

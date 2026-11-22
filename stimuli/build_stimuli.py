@@ -368,9 +368,9 @@ def build_controlled() -> dict[str, object]:
         "license": "CC-BY-4.0",
         "source": f"Constructed for readsync. Target and per-word frequencies are {_source_note}",
         "citation": _citation,
-        "design": "Matched frame pairs. The two members of each pair are the same "
-                  "sentence with a different target word, and the high and low targets "
-                  "have the same length, "
+        "design": "The items form matched pairs. The two members of each pair are the "
+                  "same sentence with a different target word, and the high and low "
+                  "targets have the same length, "
                   "so frequency is the property deliberately varied. Other lexical "
                   "properties of the chosen words covary with frequency, and "
                   "predictability is not normed, so cloze or language-model norms are "
@@ -419,9 +419,9 @@ def build_length() -> dict[str, object]:
         "license": "CC-BY-4.0",
         "source": f"Constructed for readsync. Target and per-word frequencies are {_source_note}",
         "citation": _citation,
-        "design": "Matched frame pairs. The two members of each pair are the same "
-                  "sentence with a different target word, which is short in one member "
-                  "and long in the other, "
+        "design": "The items form matched pairs. The two members of each pair are the "
+                  "same sentence with a different target word, a short word in one member "
+                  "and a long word in the other, "
                   f"with Zipf values no more than {ZIPF_MATCH} apart, so word length is the "
                   "property deliberately varied. Syllable count and morphological "
                   "complexity covary with length, and predictability is not normed.",

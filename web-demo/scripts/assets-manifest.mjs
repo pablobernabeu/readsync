@@ -1,11 +1,11 @@
 // The vendored third-party assets, pinned by version and by content.
 //
-// The version is tasks-vision 0.10.35. The Python webcam extra accepts any
-// mediapipe 0.10 release (pyproject.toml), so keep both sides on the same
-// series when bumping either. Every entry also
+// The version is tasks-vision 0.10.35. The Python webcam extra accepts the
+// mediapipe 0.10 releases that depend on OpenCV (pyproject.toml), so keep both
+// sides on the same series when updating either. Every entry also
 // carries the SHA-256 of the expected bytes, so a substituted download can
 // never be vendored or deployed: fetch-assets.mjs verifies on download and
-// check-assets.mjs re-verifies before every deploy. When bumping the version,
+// check-assets.mjs re-verifies before every deploy. When updating the version,
 // refresh the hashes from a download you have inspected.
 //
 // The runtime and the model are Apache-2.0, so their licence text is vendored

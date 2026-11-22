@@ -7,7 +7,7 @@ default, the run happens inside a ``NetworkGuard``, which blocks outbound
 connections from Python code while a participant is recorded (see SECURITY.md
 for what it does not cover).
 
-Presentation sits behind a ``Presenter`` protocol. On each frame, the session
+Presentation is handled through a ``Presenter`` protocol. On each frame, the session
 calls ``presenter.tick``, which draws the current passage, returns the session
 time and reports whether the reader has asked to move on. ``PsychoPyPresenter``
 (see ``readsync.presenters``) runs sessions on a screen, and ``HeadlessPresenter``

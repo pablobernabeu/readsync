@@ -148,8 +148,9 @@ def session_quality(
     still reported, marked incomplete. ``expected_rate_hz`` must be a positive
     rate when given. The session polls the tracker once per display frame, so
     pass the lower of the display's refresh rate and the rate at which the
-    tracker delivers new samples. For an EyeLink, that is the refresh rate, and
-    for a webcam it may be the camera's frame rate.
+    tracker delivers new samples. For an EyeLink, that is the refresh rate. For
+    a ``WebcamTracker``, it is the lowest of the refresh rate, the tracker's
+    ``max_rate_hz`` and the camera's frame rate.
     """
     if expected_rate_hz is not None and expected_rate_hz <= 0:
         raise ValueError("expected_rate_hz must be positive when given")

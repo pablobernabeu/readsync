@@ -30,7 +30,7 @@ readsync defends against accidental disclosure and casual tampering: an upload t
 
 ## Dependencies
 
-The core depends only on `cryptography`, which provides the encryption and the hashing. PsychoPy, pylink, pylsl, MediaPipe and wordfreq are optional extras, imported only by the modules that use them, so none of them is loaded when a log is written, read or exported unless the session itself uses it.
+The core depends only on `cryptography`, which provides the Fernet encryption and the authentication of each record. The hash chain and the pseudonymisation use Python's standard `hashlib` and `hmac` modules. PsychoPy, pylink, pylsl, MediaPipe and wordfreq are optional extras, imported only by the modules that use them, so writing, reading or exporting a log loads none of them, except any that the session itself uses.
 
 ## Reporting a vulnerability
 

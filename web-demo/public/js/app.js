@@ -130,7 +130,7 @@ function usable(signal) {
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 // Resolve when a button is clicked or its shortcut key is pressed, whichever
-// comes first. Clicking is the primary path, and the keys are an optional
+// comes first. Clicking is the main way to respond, and the keys are an optional
 // shortcut. Each option is { el, value, keys }, where keys are lowercase and
 // " " is the space bar. Key events are ignored while one of the option buttons
 // itself has focus, so that pressing Space on a focused button activates that

@@ -26,9 +26,10 @@ __all__ = [
 _UNSAFE = re.compile(r"[\s=]+")
 
 # EyeLink data-file messages have a maximum length. pylink's documentation gives
-# 130 characters and PsychoPy's SR Research plugin 128, so markers are cut at the
-# lower figure. A longer message loses its tail silently, at the same point on
-# every backend, while the session log keeps the full marker.
+# 130 characters and PsychoPy's SR Research plugin 128, so EyeLinkMarkerSink cuts
+# messages at the lower figure. A longer message is truncated without warning,
+# while the session log keeps the full marker. Lab Streaming Layer markers are
+# sent in full.
 EYELINK_MESSAGE_LIMIT = 128
 
 # Marker fields that identify the event, written before the others.

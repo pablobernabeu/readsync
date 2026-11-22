@@ -37,11 +37,12 @@ present = ["psychopy>=2024.1"]
 eyelink = ["sr-research-pylink"]
 # Webcam gaze: camera capture and MediaPipe's FaceLandmarker. MediaPipe depends on
 # opencv-contrib-python, which provides cv2, so OpenCV is not listed separately.
+# Releases 0.10.30 and 0.10.31 omit that dependency and are excluded.
 # PsychoPy depends on opencv-python, so an environment with both the present and
 # webcam extras holds two cv2 builds, and whichever was installed last provides
 # the module. The bound matches the MediaPipe release series pinned in the
 # browser demo.
-webcam = ["mediapipe>=0.10,<0.11"]
+webcam = ["mediapipe>=0.10,<0.11,!=0.10.30,!=0.10.31"]
 # Building the stimulus sets with frequency annotation. The JSON files ship with
 # the frequencies, so running a session needs none of it.
 stimuli = ["wordfreq>=3.1.1,<4"]

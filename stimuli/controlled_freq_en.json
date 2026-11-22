@@ -9,7 +9,7 @@
     "Frequency and length effects in reading: Rayner, K. (1998). Eye movements in reading and information processing: 20 years of research. Psychological Bulletin, 124(3), 372-422. https://doi.org/10.1037/0033-2909.124.3.372",
     "Frequency effect, updated review: Brysbaert, M., Mandera, P., & Keuleers, E. (2018). The word frequency effect in word processing: An updated review. Current Directions in Psychological Science, 27(1), 45-50. https://doi.org/10.1177/0963721417727521"
   ],
-  "design": "Matched frame pairs. The two members of each pair are the same sentence with a different target word, and the high and low targets have the same length, so frequency is the property deliberately varied. Other lexical properties of the chosen words covary with frequency, and predictability is not normed, so cloze or language-model norms are needed before analysis.",
+  "design": "The items form matched pairs. The two members of each pair are the same sentence with a different target word, and the high and low targets have the same length, so frequency is the property deliberately varied. Other lexical properties of the chosen words covary with frequency, and predictability is not normed, so cloze or language-model norms are needed before analysis.",
   "items": [
     {
       "id": "p01h",

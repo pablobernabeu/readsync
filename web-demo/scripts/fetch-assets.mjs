@@ -6,7 +6,7 @@
 //   node scripts/fetch-assets.mjs
 //
 // The downloaded files are third-party builds and a large model, so they are
-// gitignored. Versions and expected SHA-256 hashes live in assets-manifest.mjs.
+// gitignored. Versions and expected SHA-256 hashes are listed in assets-manifest.mjs.
 // Every download is verified against its hash before it is written, so a
 // substituted response from a CDN cannot be vendored.
 
